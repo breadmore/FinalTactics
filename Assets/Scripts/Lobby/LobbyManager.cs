@@ -5,14 +5,19 @@ using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using System.Collections.Generic;
 using QFSW.QC;
+using UnityEngine.UI;
 
-public class TestLobby : MonoBehaviour
+public class LobbyManager : MonoBehaviour
 {
+    [SerializeField] private Button createLobbyButton;
+    [SerializeField] private Button refreshLobbyButton;
 
     private Lobby hostLobby;
     private Lobby joinedLobby;
+
     private float heartbeatTimer;
     private float lobbyUpdateTimer;
+
     private string playerName;
 
     private bool isSigningIn = false; // 로그인 상태를 추적할 플래그
@@ -58,14 +63,12 @@ public class TestLobby : MonoBehaviour
     {
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
-
-
     }
 
 
     private async void HandleLobbyHeartbeat()
     {
-        if(hostLobby != null)
+        if (hostLobby != null)
         {
             heartbeatTimer -= Time.deltaTime;
             if (heartbeatTimer < 0f)
@@ -95,7 +98,7 @@ public class TestLobby : MonoBehaviour
     }
 
     [Command]
-    private  async void CreateLobby()
+    private async void CreateLobby()
     {
         try
         {
@@ -117,7 +120,8 @@ public class TestLobby : MonoBehaviour
             joinedLobby = hostLobby;
             PrintPlayers(hostLobby);
             Debug.Log("Create Lobby ! " + lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Id + " " + lobby.LobbyCode);
-        }catch(LobbyServiceException e)
+        }
+        catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
@@ -146,7 +150,8 @@ public class TestLobby : MonoBehaviour
             {
                 Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Data["GameMode"].Value);
             }
-        }catch (LobbyServiceException e)
+        }
+        catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
@@ -177,10 +182,10 @@ public class TestLobby : MonoBehaviour
     {
         try
         {
-        await LobbyService.Instance.QuickJoinLobbyAsync();
+            await LobbyService.Instance.QuickJoinLobbyAsync();
             Debug.Log("Quick Join In Lobby!");
         }
-        catch(LobbyServiceException e)
+        catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
@@ -207,7 +212,7 @@ public class TestLobby : MonoBehaviour
     {
         Debug.Log("player in Lobby" + lobby.Name + " " + lobby.Data["GameMode"].Value + " " + lobby.Data["Map"].Value);
 
-        foreach(Player player in lobby.Players)
+        foreach (Player player in lobby.Players)
         {
             Debug.Log(player.Id + " " + player.Data["PlayerName"].Value);
         }
@@ -219,7 +224,7 @@ public class TestLobby : MonoBehaviour
     {
         try
         {
-           hostLobby = await LobbyService.Instance.UpdateLobbyAsync(hostLobby.Id, new UpdateLobbyOptions
+            hostLobby = await LobbyService.Instance.UpdateLobbyAsync(hostLobby.Id, new UpdateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
             {
@@ -286,7 +291,7 @@ public class TestLobby : MonoBehaviour
         {
             hostLobby = await LobbyService.Instance.UpdateLobbyAsync(hostLobby.Id, new UpdateLobbyOptions
             {
-              HostId = joinedLobby.Players[1].Id
+                HostId = joinedLobby.Players[1].Id
             });
             joinedLobby = hostLobby;
         }
