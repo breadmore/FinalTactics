@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 public class PlayerNetwork : NetworkBehaviour
 {
+    [SerializeField] private Transform spawnedObjectPrefab;
+    
+    private Transform spawnedObjectTransform;
 
     private struct MyCustomData : INetworkSerializable
     {
@@ -42,6 +45,18 @@ public class PlayerNetwork : NetworkBehaviour
     {
         if (!IsOwner) return;
 
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            spawnedObjectTransform =  Instantiate(spawnedObjectPrefab);
+            spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Y))
+        {
+
+            spawnedObjectTransform.GetComponent<NetworkObject>().Despawn(true);
+            //Destroy(spawnedObjectTransform.gameObject);
+        }
         if (Input.GetKeyDown(KeyCode.S))
         {
             TestServerRPC(new ServerRpcParams());
