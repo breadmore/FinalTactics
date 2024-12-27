@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using QFSW.QC;
 using UnityEngine.UI;
 
-public class LobbyManager : MonoBehaviour
+public class LobbyManager : Singleton<LobbyManager>
 {
     [SerializeField] private Button createLobbyButton;
     [SerializeField] private Button refreshLobbyButton;
@@ -19,45 +19,6 @@ public class LobbyManager : MonoBehaviour
     private float lobbyUpdateTimer;
 
     private string playerName;
-
-    private bool isSigningIn = false; // 로그인 상태를 추적할 플래그
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    private async void Start()
-    {
-        await UnityServices.InitializeAsync();
-
-        AuthenticationService.Instance.SignedIn += () =>
-        {
-            Debug.Log("Signed in " + AuthenticationService.Instance.PlayerId);
-        };
-
-        if (!AuthenticationService.Instance.IsSignedIn && !isSigningIn)
-        {
-            isSigningIn = true;
-
-            try
-            {
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            }
-            catch (AuthenticationException e)
-            {
-                Debug.LogError("Authentication failed: " + e.Message);
-            }
-            finally
-            {
-                isSigningIn = false;
-            }
-        }
-        else
-        {
-            Debug.Log("Already signed in or login is in progress.");
-        }
-
-        playerName = "TestName" + UnityEngine.Random.Range(10, 99);
-        Debug.Log("Player Name : " + playerName);
-    }
-
-
 
     private void Update()
     {
@@ -98,21 +59,16 @@ public class LobbyManager : MonoBehaviour
     }
 
     [Command]
-    private async void CreateLobby()
+    public async void CreateLobby(string lobbyName, int maxPlayers, Dictionary<string, DataObject> lobbyData)
     {
         try
         {
-            string lobbyName = "new lobby";
-            int maxPlayers = 4;
+
             CreateLobbyOptions options = new CreateLobbyOptions
             {
                 IsPrivate = false,
                 Player = GetPlayer(),
-                Data = new Dictionary<string, DataObject>
-                {
-                    {"GameMode",new DataObject(DataObject.VisibilityOptions.Public, "CaptureTheFlag") },
-                    {"Map", new DataObject(DataObject.VisibilityOptions.Public, "De_Dust2") }
-                }
+                Data = lobbyData
             };
 
             Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
