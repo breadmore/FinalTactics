@@ -8,13 +8,15 @@ using TMPro;
 public class LobbyCreateUI : MonoBehaviour
 {
     [SerializeField] private Button createLobbyButton;
+    [SerializeField] private Button createLobbyConfirmButton;
     [SerializeField] private TMP_InputField lobbyNameInput;
     [SerializeField] private TMP_Dropdown maxPlayersDropdown;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Start()
     {
-        createLobbyButton.onClick.AddListener(OnCreateLobbyClicked);
+        createLobbyButton.onClick.AddListener(OpenPopUp);
+        createLobbyConfirmButton.onClick.AddListener(OnCreateLobbyClicked);
     }
 
     private void OnCreateLobbyClicked()
@@ -28,6 +30,12 @@ public class LobbyCreateUI : MonoBehaviour
         };
 
         LobbyManager.Instance.CreateLobby(lobbyName, maxPlayers, lobbyData);
+        PopUpGroup.Instance.CloseTopPopUp();
+    }
+
+    private void OpenPopUp()
+    {
+        PopUpGroup.Instance.PushPopUp(PopUpGroup.Instance.createLobbyPopUp);
     }
 
 }

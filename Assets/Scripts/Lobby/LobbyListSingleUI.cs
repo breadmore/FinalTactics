@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-
 public class LobbyListSingleUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI lobbyNameText;
@@ -8,12 +7,12 @@ public class LobbyListSingleUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI gameModeText;
 
 
-    public void SetLobbyInfo(string lobbyName, int player, string gameMode)
+    public void SetLobbyInfo(string lobbyName, int nowPlayer,int maxPlayer, string gameMode)
     {
-        player = Mathf.Min(player, 4);
+        maxPlayer = Mathf.Min(maxPlayer, 4);
 
         lobbyNameText.text = lobbyName;
-        playersText.text = player + "/4";
+        playersText.text = nowPlayer + "/" + maxPlayer;
         gameModeText.text = gameMode;
     }
 }

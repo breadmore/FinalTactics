@@ -1,3 +1,4 @@
+using System;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using UnityEngine;
@@ -5,6 +6,7 @@ using UnityEngine.UI;
 
 public class AuthenticateUI : MonoBehaviour
 {
+    public static event Action OnAuthenticationSuccess;
     private bool isSigningIn = false; // 로그인 상태를 추적할 플래그
 
     private string playerName;
@@ -25,6 +27,7 @@ public class AuthenticateUI : MonoBehaviour
         AuthenticationService.Instance.SignedIn += () =>
         {
             Debug.Log("Signed in " + AuthenticationService.Instance.PlayerId);
+            OnAuthenticationSuccess?.Invoke();
         };
 
         if (!AuthenticationService.Instance.IsSignedIn && !isSigningIn)
@@ -42,7 +45,7 @@ public class AuthenticateUI : MonoBehaviour
             finally
             {
                 isSigningIn = false;
-                UIManager.Instance.SetState(UIState.Lobby);
+                UIManager.Instance.SetState(UIState.Authentication,UIState.Lobby);
             }
         }
         else

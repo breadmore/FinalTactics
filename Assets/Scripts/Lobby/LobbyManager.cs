@@ -9,9 +9,8 @@ using UnityEngine.UI;
 
 public class LobbyManager : Singleton<LobbyManager>
 {
-    [SerializeField] private Button createLobbyButton;
-    [SerializeField] private Button refreshLobbyButton;
-
+    [SerializeField] private LobbyListUI lobbyListUI;
+    [SerializeField] private PlayerListUI playerListUI;
     private Lobby hostLobby;
     private Lobby joinedLobby;
 
@@ -19,6 +18,30 @@ public class LobbyManager : Singleton<LobbyManager>
     private float lobbyUpdateTimer;
 
     private string playerName;
+
+
+    private void OnEnable()
+    {
+        AuthenticateUI.OnAuthenticationSuccess += OnAuthenticationSuccess; // 이벤트 구독
+    }
+
+    private void OnDisable()
+    {
+        AuthenticateUI.OnAuthenticationSuccess -= OnAuthenticationSuccess; // 이벤트 구독 해제
+    }
+
+    private void OnAuthenticationSuccess()
+    {
+        Debug.Log("Authentication succeeded. Initializing LobbyManager...");
+        InitializeLobbyManager();
+    }
+
+    private void InitializeLobbyManager()
+    {
+        Debug.Log("Lobby Manager Initialized");
+        ListLobbies();
+    }
+
 
     private void Update()
     {
@@ -63,7 +86,7 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         try
         {
-
+            // 로비 생성 옵션 설정
             CreateLobbyOptions options = new CreateLobbyOptions
             {
                 IsPrivate = false,
@@ -75,6 +98,10 @@ public class LobbyManager : Singleton<LobbyManager>
             hostLobby = lobby;
             joinedLobby = hostLobby;
             PrintPlayers(hostLobby);
+            // 플레이어 리스트 UI 출력
+            UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
+            playerListUI.CreateAllPlayerList(joinedLobby);
+
             Debug.Log("Create Lobby ! " + lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Id + " " + lobby.LobbyCode);
         }
         catch (LobbyServiceException e)
@@ -84,10 +111,11 @@ public class LobbyManager : Singleton<LobbyManager>
     }
 
     [Command]
-    private async void ListLobbies()
+    public async void ListLobbies()
     {
         try
         {
+            // 로비 쿼리 옵션 설정
             var lobbiesOptions = new QueryLobbiesOptions
             {
                 Count = 25,
@@ -102,10 +130,15 @@ public class LobbyManager : Singleton<LobbyManager>
             };
             var response = await LobbyService.Instance.QueryLobbiesAsync(lobbiesOptions);
             Debug.Log("Lobbies found : " + response.Results.Count);
+            
+            // 기존 로비 삭제
+            lobbyListUI.DestroyAllLobbyList();
+
             foreach (Lobby lobby in response.Results)
             {
                 Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Data["GameMode"].Value);
-            }
+                lobbyListUI.CreateLobbyListSingleUI(lobby);
+             }
         }
         catch (LobbyServiceException e)
         {
@@ -166,7 +199,7 @@ public class LobbyManager : Singleton<LobbyManager>
     }
     private void PrintPlayers(Lobby lobby)
     {
-        Debug.Log("player in Lobby" + lobby.Name + " " + lobby.Data["GameMode"].Value + " " + lobby.Data["Map"].Value);
+        Debug.Log("player in Lobby" + lobby.Name + " " + lobby.Data["GameMode"].Value);
 
         foreach (Player player in lobby.Players)
         {
