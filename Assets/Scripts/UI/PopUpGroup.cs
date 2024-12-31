@@ -6,6 +6,7 @@ public class PopUpGroup : Singleton<PopUpGroup>
     private Stack<GameObject> popUpStack = new Stack<GameObject>();
 
     public GameObject createLobbyPopUp;
+    public GameObject createPlayerPopUp;
 
     // 팝업 UI를 푸시하여 스택에 추가
     public void PushPopUp(GameObject popUp)

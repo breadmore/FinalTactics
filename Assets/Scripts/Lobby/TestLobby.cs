@@ -94,7 +94,6 @@ public class TestLobby : MonoBehaviour
         }
     }
 
-    [Command]
     private  async void CreateLobby()
     {
         try
@@ -122,8 +121,6 @@ public class TestLobby : MonoBehaviour
             Debug.Log(e);
         }
     }
-
-    [Command]
     private async void ListLobbies()
     {
         try
@@ -151,7 +148,6 @@ public class TestLobby : MonoBehaviour
             Debug.Log(e);
         }
     }
-    [Command]
     private async void JoinLobbyByCode(string lobbyCode)
     {
         try
@@ -172,7 +168,6 @@ public class TestLobby : MonoBehaviour
         }
 
     }
-    [Command]
     private async void QuickJoinLobby()
     {
         try
@@ -185,7 +180,6 @@ public class TestLobby : MonoBehaviour
             Debug.Log(e);
         }
     }
-    [Command]
     private Player GetPlayer()
     {
         Player player = new Player
@@ -198,7 +192,6 @@ public class TestLobby : MonoBehaviour
 
         return player;
     }
-    [Command]
     private void PrintPlayers()
     {
         PrintPlayers(joinedLobby);
@@ -214,7 +207,6 @@ public class TestLobby : MonoBehaviour
     }
 
 
-    [Command]
     private async void UpdateLobbyGameMode(string gameMode)
     {
         try
@@ -253,7 +245,6 @@ public class TestLobby : MonoBehaviour
         }
     }
 
-    [Command]
     private async void LeaveLobby()
     {
         try
@@ -265,8 +256,6 @@ public class TestLobby : MonoBehaviour
             Debug.Log(e);
         }
     }
-
-    [Command]
     private async void KickPlayer(string playerId)
     {
         try
@@ -279,7 +268,6 @@ public class TestLobby : MonoBehaviour
         }
     }
 
-    [Command]
     private async void MigrateLobbyHost()
     {
         try
@@ -296,7 +284,6 @@ public class TestLobby : MonoBehaviour
         }
     }
 
-    [Command]
     private async void DeleteLobby()
     {
         try

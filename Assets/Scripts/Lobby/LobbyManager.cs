@@ -6,18 +6,25 @@ using UnityEngine;
 using System.Collections.Generic;
 using QFSW.QC;
 using UnityEngine.UI;
+using System.Threading.Tasks;
+using System;
 
 public class LobbyManager : Singleton<LobbyManager>
 {
-    [SerializeField] private LobbyListUI lobbyListUI;
-    [SerializeField] private PlayerListUI playerListUI;
+    public static event Action OnEnterLobbySuccess;
+    public LobbyListUI lobbyListUI;
+    public PlayerListUI playerListUI;
+
     private Lobby hostLobby;
     private Lobby joinedLobby;
+
+    private QueryResponse queryResponse;
 
     private float heartbeatTimer;
     private float lobbyUpdateTimer;
 
     private string playerName;
+    private bool playerReady;
 
 
     private void OnEnable()
@@ -39,7 +46,9 @@ public class LobbyManager : Singleton<LobbyManager>
     private void InitializeLobbyManager()
     {
         Debug.Log("Lobby Manager Initialized");
-        ListLobbies();
+        playerName = AuthenticationService.Instance.PlayerName;
+        OnEnterLobbySuccess?.Invoke();
+        Debug.Log(playerName);
     }
 
 
@@ -48,7 +57,6 @@ public class LobbyManager : Singleton<LobbyManager>
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
     }
-
 
     private async void HandleLobbyHeartbeat()
     {
@@ -72,17 +80,42 @@ public class LobbyManager : Singleton<LobbyManager>
             lobbyUpdateTimer -= Time.deltaTime;
             if (lobbyUpdateTimer < 0f)
             {
-                float lobbyUpdateTimerMax = 1.1f;
+                float lobbyUpdateTimerMax = 5f;
                 lobbyUpdateTimer = lobbyUpdateTimerMax;
 
-                Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
-                joinedLobby = lobby;
+                try
+                {
+                    // 최신 로비 정보 가져오기
+                    Lobby updatedLobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
+
+                    // 무조건 업데이트 처리
+                    joinedLobby = updatedLobby;
+
+                    Debug.Log("Player list updated.");
+                    Debug.Log("Joined Lobby (Updated): " + joinedLobby.Players.Count);
+
+                    // UI 갱신
+                    playerListUI.DestroyAllPlayerList();
+                    playerListUI.CreatePlayerListInLobby(joinedLobby);
+                }
+                catch (LobbyServiceException e)
+                {
+                    if (e.Reason == LobbyExceptionReason.RateLimited)
+                    {
+                        Debug.LogWarning("Rate limit exceeded. Adjusting poll interval.");
+                        lobbyUpdateTimer = 10f; // 과도한 요청 발생 시 간격을 추가로 늘림
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to update lobby: {e}");
+                    }
+                }
             }
         }
     }
 
-    [Command]
-    public async void CreateLobby(string lobbyName, int maxPlayers, Dictionary<string, DataObject> lobbyData)
+
+    public async Task CreateLobby(string lobbyName, int maxPlayers, Dictionary<string, DataObject> lobbyData)
     {
         try
         {
@@ -97,11 +130,9 @@ public class LobbyManager : Singleton<LobbyManager>
             Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
             hostLobby = lobby;
             joinedLobby = hostLobby;
-            PrintPlayers(hostLobby);
-            // 플레이어 리스트 UI 출력
-            UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
-            playerListUI.CreateAllPlayerList(joinedLobby);
 
+            Debug.Log("joined Lobby Update : create lobby");
+            PrintPlayers(hostLobby);
             Debug.Log("Create Lobby ! " + lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Id + " " + lobby.LobbyCode);
         }
         catch (LobbyServiceException e)
@@ -110,8 +141,7 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    [Command]
-    public async void ListLobbies()
+    public async Task ListLobbies()
     {
         try
         {
@@ -130,26 +160,20 @@ public class LobbyManager : Singleton<LobbyManager>
             };
             var response = await LobbyService.Instance.QueryLobbiesAsync(lobbiesOptions);
             Debug.Log("Lobbies found : " + response.Results.Count);
-            
-            // 기존 로비 삭제
-            lobbyListUI.DestroyAllLobbyList();
 
-            foreach (Lobby lobby in response.Results)
-            {
-                Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " " + lobby.Data["GameMode"].Value);
-                lobbyListUI.CreateLobbyListSingleUI(lobby);
-             }
+            queryResponse = response;
+
         }
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
     }
-    [Command]
-    private async void JoinLobbyByCode(string lobbyCode)
+    public async void JoinLobbyByCode(string lobbyCode)
     {
         try
         {
+            playerReady = false;
             JoinLobbyByCodeOptions joinLobbyByCodeOptions = new JoinLobbyByCodeOptions
             {
                 Player = GetPlayer()
@@ -157,7 +181,8 @@ public class LobbyManager : Singleton<LobbyManager>
 
             Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, joinLobbyByCodeOptions);
             joinedLobby = lobby;
-            Debug.Log("Join Lobby with code " + lobbyCode);
+
+            Debug.Log("joined Lobby Update : by code");
             PrintPlayers(lobby);
         }
         catch (LobbyServiceException e)
@@ -166,7 +191,30 @@ public class LobbyManager : Singleton<LobbyManager>
         }
 
     }
-    [Command]
+
+    public async Task JoinLobbyById(string lobbyId)
+    {
+        try
+        {
+            playerReady = false;
+            JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions
+            {
+                Player = GetPlayer()
+            };
+
+            Lobby lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId, joinLobbyByIdOptions);
+            joinedLobby = lobby;
+
+
+            Debug.Log("joined Lobby Update : by id");
+
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+        }
+    }
+
     private async void QuickJoinLobby()
     {
         try
@@ -179,20 +227,19 @@ public class LobbyManager : Singleton<LobbyManager>
             Debug.Log(e);
         }
     }
-    [Command]
-    private Player GetPlayer()
+    public Player GetPlayer()
     {
         Player player = new Player
         {
             Data = new Dictionary<string, PlayerDataObject>
-                    {
-                        { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,playerName) }
-                    }
+            { 
+                { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public,playerName) },
+                {"PlayerReady",new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public,playerReady.ToString()) }
+            }
         };
 
         return player;
     }
-    [Command]
     private void PrintPlayers()
     {
         PrintPlayers(joinedLobby);
@@ -203,12 +250,10 @@ public class LobbyManager : Singleton<LobbyManager>
 
         foreach (Player player in lobby.Players)
         {
-            Debug.Log(player.Id + " " + player.Data["PlayerName"].Value);
+            Debug.Log(player.Id + " " + player.Data["PlayerName"].Value + " " + player.Data["PlayerReady"].Value);
         }
     }
 
-
-    [Command]
     private async void UpdateLobbyGameMode(string gameMode)
     {
         try
@@ -221,6 +266,9 @@ public class LobbyManager : Singleton<LobbyManager>
             }
             });
             joinedLobby = hostLobby;
+
+
+            Debug.Log("joined Lobby Update : update mode");
         }
         catch (LobbyServiceException e)
         {
@@ -228,7 +276,7 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    private async void UpdatePlayerName(string newPlayerName)
+    public async void UpdatePlayerName(string newPlayerName)
     {
         try
         {
@@ -236,9 +284,9 @@ public class LobbyManager : Singleton<LobbyManager>
             await LobbyService.Instance.UpdatePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId, new UpdatePlayerOptions
             {
                 Data = new Dictionary<string, PlayerDataObject>
-            {
-                { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,playerName) }
-            }
+                {
+                    { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public,playerName) }
+                }
             });
         }
         catch (LobbyServiceException e)
@@ -246,9 +294,25 @@ public class LobbyManager : Singleton<LobbyManager>
             Debug.Log(e);
         }
     }
-
-    [Command]
-    private async void LeaveLobby()
+    public async void UpdatePlayerReady(bool newPlayerReady)
+    {
+        try
+        {
+            playerReady = newPlayerReady;
+            await LobbyService.Instance.UpdatePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId, new UpdatePlayerOptions
+            {
+                Data = new Dictionary<string, PlayerDataObject>
+                { 
+                    { "PlayerReady", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public,playerReady.ToString()) }
+                }
+            });
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+        }
+    }
+    public async Task LeaveLobby()
     {
         try
         {
@@ -260,7 +324,6 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    [Command]
     private async void KickPlayer(string playerId)
     {
         try
@@ -273,7 +336,6 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    [Command]
     private async void MigrateLobbyHost()
     {
         try
@@ -283,6 +345,9 @@ public class LobbyManager : Singleton<LobbyManager>
                 HostId = joinedLobby.Players[1].Id
             });
             joinedLobby = hostLobby;
+
+
+            Debug.Log("joined Lobby Update : migrate lobby");
         }
         catch (LobbyServiceException e)
         {
@@ -290,7 +355,6 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    [Command]
     private async void DeleteLobby()
     {
         try
@@ -301,5 +365,22 @@ public class LobbyManager : Singleton<LobbyManager>
         {
             Debug.Log(e);
         }
+    }
+
+    // 즉시 갱신
+    public async Task<Lobby> SyncLobby(string lobbyId)
+    {
+        return await LobbyService.Instance.GetLobbyAsync(lobbyId);
+    }
+
+
+    public Lobby GetHostLobby()
+    {
+        return hostLobby;
+    }
+
+    public QueryResponse GetQueryResponse()
+    {
+        return queryResponse;
     }
 }

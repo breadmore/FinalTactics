@@ -1,18 +1,41 @@
 using UnityEngine;
 using TMPro;
+using Unity.Services.Lobbies.Models;
+using UnityEngine.UI;
+using System.Collections.Generic;
+using Unity.Services.Authentication;
+using Unity.Services.Lobbies;
 public class LobbyListSingleUI : MonoBehaviour
 {
+    private Lobby lobby;
     [SerializeField] private TextMeshProUGUI lobbyNameText;
     [SerializeField] private TextMeshProUGUI playersText;
     [SerializeField] private TextMeshProUGUI gameModeText;
+    private Button thisButton;
 
-
-    public void SetLobbyInfo(string lobbyName, int nowPlayer,int maxPlayer, string gameMode)
+    private void Start()
     {
-        maxPlayer = Mathf.Min(maxPlayer, 4);
+        thisButton = GetComponent<Button>();
+        thisButton.onClick.AddListener(JoinLobby);
+    }
 
-        lobbyNameText.text = lobbyName;
-        playersText.text = nowPlayer + "/" + maxPlayer;
-        gameModeText.text = gameMode;
+    public void SetLobbyInfo(Lobby _lobby)
+    {
+        lobby = _lobby;
+
+        lobbyNameText.text = lobby.Name;
+        playersText.text = lobby.Players.Count + "/" + lobby.MaxPlayers;
+        gameModeText.text = lobby.Data["GameMode"].Value;
+    }
+
+    private async void JoinLobby()
+    {
+        Debug.Log(lobby.Id);
+        await LobbyManager.Instance.JoinLobbyById(lobby.Id);
+
+        Lobby syncLobby = await LobbyManager.Instance.SyncLobby(lobby.Id);
+        UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
+
+        LobbyManager.Instance.playerListUI.CreatePlayerListInLobby(syncLobby);
     }
 }

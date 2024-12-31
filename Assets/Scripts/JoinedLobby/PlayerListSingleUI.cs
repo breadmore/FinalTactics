@@ -10,11 +10,11 @@ public class PlayerListSingleUI : MonoBehaviour
     [SerializeField] private Sprite readyAgreeSprite;
     [SerializeField] private Sprite readyDisagreeSprite;
 
-    public void SetPlayerInfo(string playerName, bool ready, string gameMode)
+    public bool ready = false;
+    public void SetPlayerInfo(string playerName, bool ready)
     {
         playerNameText.text = playerName;
         SetPlayerReadyCheck(ready);
-        gameModeText.text = gameMode;
     }
 
     public void SetPlayerReadyCheck(bool ready)

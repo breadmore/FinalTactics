@@ -7,7 +7,7 @@ public class LobbyListUI : MonoBehaviour
     public void CreateLobbyListSingleUI(Lobby lobby)
     {
         LobbyListSingleUI lobbyListSingleUI = Instantiate(lobbyListSingleUIPrefab, transform);
-        lobbyListSingleUI.SetLobbyInfo(lobby.Name, lobby.Players.Count, lobby.MaxPlayers, lobby.Data["GameMode"].Value);
+        lobbyListSingleUI.SetLobbyInfo(lobby);
     }
 
     public void DestroyAllLobbyList()
