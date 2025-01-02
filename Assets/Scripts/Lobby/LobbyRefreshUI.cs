@@ -12,12 +12,12 @@ public class LobbyRefreshUI : MonoBehaviour
 
     private void OnEnable()
     {
-        LobbyManager.OnEnterLobbySuccess += RefreshLobbyList; // 이벤트 구독
+        LobbyManager.OnLobbyListUpdate += RefreshLobbyList; // 이벤트 구독
     }
 
     private void OnDisable()
     {
-        LobbyManager.OnEnterLobbySuccess -= RefreshLobbyList; // 이벤트 구독 해제
+        LobbyManager.OnLobbyListUpdate -= RefreshLobbyList; // 이벤트 구독 해제
     }
 
     void Start()
@@ -25,7 +25,7 @@ public class LobbyRefreshUI : MonoBehaviour
         refreshLobbyButton.onClick.AddListener(OnRefreshLobbyClicked);
     }
 
-    private async void RefreshLobbyList()
+    public static async void RefreshLobbyList()
     {
         LobbyManager.Instance.lobbyListUI.DestroyAllLobbyList();
         await LobbyManager.Instance.ListLobbies();

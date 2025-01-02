@@ -30,12 +30,10 @@ public class LobbyListSingleUI : MonoBehaviour
 
     private async void JoinLobby()
     {
-        Debug.Log(lobby.Id);
         await LobbyManager.Instance.JoinLobbyById(lobby.Id);
-
-        Lobby syncLobby = await LobbyManager.Instance.SyncLobby(lobby.Id);
+        LobbyManager.Instance.SyncJoinLobby(lobby);
         UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
 
-        LobbyManager.Instance.playerListUI.CreatePlayerListInLobby(syncLobby);
+        LobbyManager.Instance.playerListUI.CreatePlayerListInLobby(lobby);
     }
 }

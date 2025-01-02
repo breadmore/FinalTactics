@@ -13,6 +13,7 @@ public class LobbyLeaveUI : MonoBehaviour
     private async void OnLeaveLobbyClicked()
     {
         await LobbyManager.Instance.LeaveLobby();
+        await LobbyManager.Instance.UpdatePlayerReady(false);
         LobbyManager.Instance.playerListUI.DestroyAllPlayerList();
         UIManager.Instance.SetState(UIState.JoinedLobby, UIState.Lobby);
     }
