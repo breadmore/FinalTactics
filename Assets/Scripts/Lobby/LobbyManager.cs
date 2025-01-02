@@ -11,7 +11,7 @@ using System;
 
 public class LobbyManager : Singleton<LobbyManager>
 {
-    public static event Action OnEnterLobbySuccess;
+    public static event Action OnLobbyListUpdate;
     public LobbyListUI lobbyListUI;
     public PlayerListUI playerListUI;
 
@@ -22,6 +22,7 @@ public class LobbyManager : Singleton<LobbyManager>
 
     private float heartbeatTimer;
     private float lobbyUpdateTimer;
+    private float lobbyListUpdateTimer;
 
     private string playerName;
     private bool playerReady;
@@ -30,6 +31,8 @@ public class LobbyManager : Singleton<LobbyManager>
     private void OnEnable()
     {
         AuthenticateUI.OnAuthenticationSuccess += OnAuthenticationSuccess; // 이벤트 구독
+        hostLobby = null;
+        joinedLobby = null;
     }
 
     private void OnDisable()
@@ -47,8 +50,7 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         Debug.Log("Lobby Manager Initialized");
         playerName = AuthenticationService.Instance.PlayerName;
-        OnEnterLobbySuccess?.Invoke();
-        Debug.Log(playerName);
+        OnLobbyListUpdate?.Invoke();
     }
 
 
@@ -56,6 +58,22 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
+        LobbyListUpdates();
+    }
+
+    private void LobbyListUpdates()
+    {
+        if (joinedLobby == null)
+        {
+            lobbyListUpdateTimer -= Time.deltaTime;
+            if (lobbyListUpdateTimer < 0f)
+            {
+                float lobbyListUpdateTimerMax = 5f;
+                lobbyListUpdateTimer = lobbyListUpdateTimerMax;
+
+                OnLobbyListUpdate?.Invoke();
+            }
+        }
     }
 
     private async void HandleLobbyHeartbeat()
@@ -80,7 +98,7 @@ public class LobbyManager : Singleton<LobbyManager>
             lobbyUpdateTimer -= Time.deltaTime;
             if (lobbyUpdateTimer < 0f)
             {
-                float lobbyUpdateTimerMax = 5f;
+                float lobbyUpdateTimerMax = 1.1f;
                 lobbyUpdateTimer = lobbyUpdateTimerMax;
 
                 try
@@ -91,19 +109,16 @@ public class LobbyManager : Singleton<LobbyManager>
                     // 무조건 업데이트 처리
                     joinedLobby = updatedLobby;
 
-                    Debug.Log("Player list updated.");
-                    Debug.Log("Joined Lobby (Updated): " + joinedLobby.Players.Count);
-
                     // UI 갱신
-                    playerListUI.DestroyAllPlayerList();
-                    playerListUI.CreatePlayerListInLobby(joinedLobby);
+                    //playerListUI.DestroyAllPlayerList();
+                    playerListUI.UpdatePlayerListInLobby(joinedLobby);
                 }
                 catch (LobbyServiceException e)
                 {
                     if (e.Reason == LobbyExceptionReason.RateLimited)
                     {
                         Debug.LogWarning("Rate limit exceeded. Adjusting poll interval.");
-                        lobbyUpdateTimer = 10f; // 과도한 요청 발생 시 간격을 추가로 늘림
+                        lobbyUpdateTimer = 5.1f; // 과도한 요청 발생 시 간격을 추가로 늘림
                     }
                     else
                     {
@@ -294,7 +309,7 @@ public class LobbyManager : Singleton<LobbyManager>
             Debug.Log(e);
         }
     }
-    public async void UpdatePlayerReady(bool newPlayerReady)
+    public async Task UpdatePlayerReady(bool newPlayerReady)
     {
         try
         {
@@ -317,6 +332,8 @@ public class LobbyManager : Singleton<LobbyManager>
         try
         {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
+            hostLobby = null;
+            joinedLobby = null;
         }
         catch (LobbyServiceException e)
         {
@@ -367,18 +384,21 @@ public class LobbyManager : Singleton<LobbyManager>
         }
     }
 
-    // 즉시 갱신
-    public async Task<Lobby> SyncLobby(string lobbyId)
-    {
-        return await LobbyService.Instance.GetLobbyAsync(lobbyId);
-    }
-
 
     public Lobby GetHostLobby()
     {
         return hostLobby;
     }
 
+    public Lobby GetJoinedLobby()
+    {
+        return joinedLobby;
+    }
+
+    public void SyncJoinLobby(Lobby _lobby)
+    {
+        _lobby = joinedLobby;
+    }
     public QueryResponse GetQueryResponse()
     {
         return queryResponse;

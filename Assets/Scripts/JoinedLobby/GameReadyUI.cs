@@ -12,13 +12,13 @@ public class GameReadyUI : MonoBehaviour
         gameReadyButton.onClick.AddListener(OnGameReadyClicked);
     }
 
-    private void OnGameReadyClicked()
+    private async void OnGameReadyClicked()
     {
         if (LobbyManager.Instance.GetPlayer().Data.TryGetValue("PlayerReady", out PlayerDataObject readyData))
         {
             bool.TryParse(readyData.Value, out gameReady);
         }
         gameReady = !gameReady;
-        LobbyManager.Instance.UpdatePlayerReady(gameReady);
+        await LobbyManager.Instance.UpdatePlayerReady(gameReady);
     }
 }
