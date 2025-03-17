@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2923ade9794581b428f255c95749d106, type: 3}
+  m_Name: CharacterDataReader
+  m_EditorClassIdentifier: 
+  associatedSheet: 1evZJFACKIcKWhLEgkyfMmqNDzNKXAFjr1PghcqWWSiA
+  associatedWorksheet: CharacterData
+  START_ROW_LENGTH: 2
+  END_ROW_LENGTH: 9
+  DataList:
+  - characterSprite: {fileID: 0}
+    id: 0
+    characterStat:
+      speed: 1
+      pass: 1
+      shoot: 1
+      dribble: 1
+      tackle: 1
+      stamina: 1
+  - characterSprite: {fileID: 0}
+    id: 1
+    characterStat:
+      speed: 2
+      pass: 2
+      shoot: 2
+      dribble: 2
+      tackle: 2
+      stamina: 2
+  - characterSprite: {fileID: 0}
+    id: 2
+    characterStat:
+      speed: 3
+      pass: 3
+      shoot: 3
+      dribble: 3
+      tackle: 3
+      stamina: 3
+  - characterSprite: {fileID: 0}
+    id: 3
+    characterStat:
+      speed: 4
+      pass: 4
+      shoot: 4
+      dribble: 4
+      tackle: 4
+      stamina: 4
+  - characterSprite: {fileID: 0}
+    id: 4
+    characterStat:
+      speed: 5
+      pass: 5
+      shoot: 5
+      dribble: 5
+      tackle: 5
+      stamina: 5
+  - characterSprite: {fileID: 0}
+    id: 5
+    characterStat:
+      speed: 6
+      pass: 6
+      shoot: 6
+      dribble: 6
+      tackle: 6
+      stamina: 6
+  - characterSprite: {fileID: 0}
+    id: 6
+    characterStat:
+      speed: 7
+      pass: 7
+      shoot: 7
+      dribble: 7
+      tackle: 7
+      stamina: 7
+  - characterSprite: {fileID: 0}
+    id: 7
+    characterStat:
+      speed: 8
+      pass: 8
+      shoot: 8
+      dribble: 8
+      tackle: 8
+      stamina: 8

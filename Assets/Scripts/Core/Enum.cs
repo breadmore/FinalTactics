@@ -1,0 +1,43 @@
+public enum AttackAction
+{
+    Shoot,      // ½¸
+    Pass,       // ÆÐ½º
+    Dribble     // µå¸®ºí
+}
+
+public enum DefenseAction
+{
+    Block,      // ºí·Ï
+    Tackle,     // ÅÂÅ¬
+    Intercept   // ÀÎÅÍ¼ÁÆ®
+}
+
+public enum GoalkeeperAction
+{
+    Save,       // ½¸ ¹æ¾î
+    Punch,      // ÆÝÄª
+    Catch       // °ø Àâ±â
+}
+
+public enum CharacterType
+{
+    Striker,
+    Defender,
+    Goalkeeper,
+    None
+}
+
+public enum CharacterStat2
+{
+    Reaction,
+    Accuracy,
+    Defense,
+}
+
+public enum LoadSceneType
+{
+    Intro,
+    Loading,
+    Main,
+    None
+}
