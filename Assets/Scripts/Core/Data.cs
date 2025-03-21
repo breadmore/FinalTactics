@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 [Serializable]
 public class PlayerData
@@ -47,6 +48,8 @@ public class CharacterData
         this.characterStat = characterStat;
     }
 }
+
+
 
 [Serializable]
 public class CharacterStat

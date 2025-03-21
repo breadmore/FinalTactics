@@ -7731,10 +7731,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: NetworkManager
       objectReference: {fileID: 0}
-    - target: {fileID: 416171623349468281, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 673618650174501360, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -7775,30 +7771,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: LogLevel
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: NetworkConfig.PlayerPrefab
-      value: 
-      objectReference: {fileID: 1944966435929585533, guid: 425b698b764f60640ab2478a94b3c95d, type: 3}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: NetworkConfig.NetworkTopology
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: NetworkConfig.ForceSamePrefabs
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: NetworkConfig.EnableSceneManagement
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6053608916798171057, guid: 909debe2303aca34c89bd0c6f67fb1a5, type: 3}
-      propertyPath: 'NetworkConfig.Prefabs.NetworkPrefabsLists.Array.data[0]'
-      value: 
-      objectReference: {fileID: 11400000, guid: f281f4c6a6217417786236adc34b787b, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

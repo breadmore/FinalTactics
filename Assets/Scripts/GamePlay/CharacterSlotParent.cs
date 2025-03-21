@@ -8,6 +8,7 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
     private CharacterData selectedCharacterData;
 
     private bool isSelected = false;
+    private int characterCount;
 
     private void Awake()
     {
@@ -18,15 +19,22 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
     private void Start()
     {
-        CreateChild(2);
-        for (int i = 0; i < 2; i++)
+        CreateChild(8);
+        for (int i = 0; i < 8; i++)
         {
             InitChild(i);
         }
+        characterCount = 0;
     }
 
     private void Update()
     {
+        // 최대 생성 수 까지만
+        if (characterCount >= GameConstants.MaxCharacterCount)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
         if (isSelected)
         {
             if (Input.GetMouseButtonDown(0))
@@ -39,10 +47,10 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
                     {
                         if (selectedCharacterData != null)
                         {
-                            Vector3 spawnPosition = GridManager.Instance.GetNearestGridCenter(hit.point);
-                            GameManager.Instance.selectedGridPosition = spawnPosition;
-                            Debug.Log("Grid position stored: " + spawnPosition);
+                            GameManager.Instance.selectedGridTile = hit.collider.GetComponent<GridTile>();
+                            Debug.Log(GameManager.Instance.selectedGridTile.name);
                             ToggleSelected();
+                            characterCount++;
                         }
                         else
                         {

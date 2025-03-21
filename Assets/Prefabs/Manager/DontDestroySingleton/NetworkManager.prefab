@@ -49,7 +49,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 5087341822256923260}
-    PlayerPrefab: {fileID: 2394937624705757387, guid: 4b05d0e9846584c3eb08e0de9c26aedb, type: 3}
+    PlayerPrefab: {fileID: 1944966435929585533, guid: 425b698b764f60640ab2478a94b3c95d, type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: f281f4c6a6217417786236adc34b787b, type: 2}
@@ -68,14 +68,14 @@ MonoBehaviour:
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
     EnableNetworkLogs: 1
-    NetworkTopology: 1
+    NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
     NetworkMessageMetrics: 1
     NetworkProfilingMetrics: 1
     OldPrefabList: []
   RunInBackground: 1
-  LogLevel: 1
+  LogLevel: 0
 --- !u!114 &5087341822256923260
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -5,15 +5,26 @@ using QFSW.QC;
 using Unity.Netcode;
 using System.Threading.Tasks;
 
+public class PlayerTeam
+{
+    public TeamName name { get; private set; }
+    public List<Player> Players { get; private set; }
+
+    public PlayerTeam(TeamName name)
+    {
+        this.name = name;
+        Players = new List<Player>();
+    }
+}
 public class GameManager : DontDestroySingleton<GameManager>
 {
     public Camera mainCamera;
-    public List<Player> playerList { get; private set; } = new List<Player>();
-    public List<PlayerData> playerDataList { get; private set; } = new List<PlayerData> { };
-    public Vector3? selectedGridPosition { get; set; }
+    public List<Player> PlayerList { get; private set; } = new List<Player>();
+    public List<PlayerData> PlayerDataList { get; private set; } = new List<PlayerData> { };
+    public GridTile selectedGridTile = null;
 
-    private Player[] Team1;
-    private Player[] Team2;
+    public PlayerTeam teamA;
+    public PlayerTeam teamB;
 
     private void Start()
     {
@@ -24,9 +35,9 @@ public class GameManager : DontDestroySingleton<GameManager>
     {
         if (LobbyManager.Instance.GetJoinedLobby() != null)
         {
-            playerList = new List<Player>(LobbyManager.Instance.GetJoinedLobby().Players);
+            PlayerList = new List<Player>(LobbyManager.Instance.GetJoinedLobby().Players);
             AssignTeams();
-            Debug.Log($"Loaded {playerList.Count} players from the lobby.");
+            Debug.Log($"Loaded {PlayerList.Count} players from the lobby.");
             await RelayManager.Instance.ConnectRelay();
         }
         else
@@ -37,46 +48,37 @@ public class GameManager : DontDestroySingleton<GameManager>
 
     public void InitPlayerData()
     {
-        if (playerList.Count == 0) return;
-        playerDataList.Clear();
-        for (int i = 0; i < playerList.Count; i++)
+        if (PlayerList.Count == 0) return;
+        PlayerDataList.Clear();
+        for (int i = 0; i < PlayerList.Count; i++)
         {
-            var player = playerList[i];
+            var player = PlayerList[i];
             var playerData = new PlayerData(player.Id, i, 0);
-            playerDataList.Add(playerData);
+            PlayerDataList.Add(playerData);
         }
-        Debug.Log($"Initialized {playerDataList.Count} player data entries.");
+        Debug.Log($"Initialized {PlayerDataList.Count} player data entries.");
     }
 
 
     private void AssignTeams()
     {
-        // Clear previous teams (if any)
-        Team1 = new Player[0];
-        Team2 = new Player[0];
+        teamA = new PlayerTeam(TeamName.TeamA);
+        teamB = new PlayerTeam(TeamName.TeamB);
 
-        List<Player> team1Players = new List<Player>();
-        List<Player> team2Players = new List<Player>();
+        teamA.Players.Clear();
+        teamB.Players.Clear();
 
-        // Loop through the players and assign to teams based on playerTeam value
-        foreach (var player in playerList)
+        foreach (var player in PlayerList)
         {
-            // Check the player's team based on the LobbyManager's playerTeam value
             if (player.Data["PlayerTeam"].Value == "False")
             {
-                team1Players.Add(player);
+                teamB.Players.Add(player);
             }
             else
             {
-                team2Players.Add(player);
+                teamA.Players.Add(player);
             }
         }
-
-        // Assign the players to Team1 and Team2
-        Team1 = team1Players.ToArray();
-        Team2 = team2Players.ToArray();
-
-        Debug.Log($"Team 1 has {Team1.Length} players, Team 2 has {Team2.Length} players.");
     }
 
 
@@ -84,8 +86,8 @@ public class GameManager : DontDestroySingleton<GameManager>
     [Command]
     private void ShowPlayers()
     {
-        Debug.Log(playerList.Count + " Players in Game!");
-        foreach (var player in playerList)
+        Debug.Log(PlayerList.Count + " Players in Game!");
+        foreach (var player in PlayerList)
         {
             Debug.Log("Player Id : " + player.Id);
         }

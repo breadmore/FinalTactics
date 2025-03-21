@@ -105,7 +105,7 @@ public async Task ConnectRelay()
     public async Task WaitForRelayConnection()
     {
         // 클라이언트가 모두 연결될 때까지 대기
-        while (NetworkManager.Singleton.ConnectedClients.Count < LobbyManager.Instance.GetJoinedLobby().Players.Count)  // 예시로 두 명의 클라이언트가 필요함
+        while (NetworkManager.Singleton.ConnectedClients.Count < LobbyManager.Instance.GetJoinedLobby().Players.Count)
         {
             Debug.Log("wait other players...");
             //Debug.Log("Currunt Code : " + currentRelayCode);

@@ -1,15 +1,12 @@
 ﻿using Unity.Services.Authentication;
-using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using System.Collections.Generic;
 using QFSW.QC;
-using UnityEngine.UI;
 using System.Threading.Tasks;
 using System;
 using UnityEngine.SceneManagement;
-using Unity.Netcode;
 
 public class LobbyManager : DontDestroySingleton<LobbyManager>
 {

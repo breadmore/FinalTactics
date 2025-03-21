@@ -7,7 +7,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
     private Button button;
     private CharacterSlotParent slotParent;
     private CharacterData characterData;
-
+    private bool isSpawned = false;
     public override void SetParent<T>(ILayoutGroupParent<T> newParent)
     {
         base.SetParent(newParent);
@@ -31,7 +31,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
     }
     public void PrintCharacterData()
     {
-        Debug.Log(characterData.characterStat);
+        Debug.Log(characterData.characterStat.shoot);
     }
 
     public void CallParentMethod()
@@ -57,7 +57,6 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         if (thisImage != null && newSprite != null)
         {
             thisImage.sprite = newSprite;
-            Debug.Log("Image Changed");
         }
         else
         {
@@ -79,8 +78,22 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
 
     private void SelectCharacterData()
     {
+        // 클릭 이미 돼있으면 리턴
+        if (isSpawned) return;
+
         slotParent?.ToggleSelected();
         slotParent?.SelectCharacterData(characterData);
+        ToggleIsSpawned();
     }
+
+    // 클릭(생성) 했는지 체크
+    public void ToggleIsSpawned()
+    {
+        // 클릭 시 추가할 효과
+
+        //
+        isSpawned = !isSpawned;
+    }
+
 
 }

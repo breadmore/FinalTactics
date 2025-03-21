@@ -14,4 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   backgroundImages:
   - {fileID: 21300000, guid: 54c47fd4b47bc8945aad064bdc84ef37, type: 3}
+  - {fileID: 21300000, guid: 49ef52398829e54449b2be1be0c40597, type: 3}
+  - {fileID: 21300000, guid: 16d2c17dafac1d64eb647cb4e1be08bb, type: 3}
   - {fileID: 21300000, guid: d596e8973b1e49f409561c3b6fab9330, type: 3}
+  - {fileID: 21300000, guid: 1b03f07cb05969944a08b06b9d36da68, type: 3}
+  - {fileID: 21300000, guid: f5e9fd199243b054d85d8e94e627015f, type: 3}
+  - {fileID: 21300000, guid: 78a6ebaad102342498c2fbafb6161f09, type: 3}
+  - {fileID: 21300000, guid: 50118c90505c545419155328d01dbaac, type: 3}
