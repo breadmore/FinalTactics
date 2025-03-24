@@ -1,44 +1,39 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using Unity.Services.Lobbies.Models;
 using QFSW.QC;
 using Unity.Netcode;
 using System.Threading.Tasks;
+using Unity.Services.Authentication;
+using System.Linq;
 
-public class PlayerTeam
-{
-    public TeamName name { get; private set; }
-    public List<Player> Players { get; private set; }
 
-    public PlayerTeam(TeamName name)
-    {
-        this.name = name;
-        Players = new List<Player>();
-    }
-}
-public class GameManager : DontDestroySingleton<GameManager>
+public class GameManager : Singleton<GameManager>
 {
     public Camera mainCamera;
-    public List<Player> PlayerList { get; private set; } = new List<Player>();
-    public List<PlayerData> PlayerDataList { get; private set; } = new List<PlayerData> { };
-    public GridTile selectedGridTile = null;
+    public Dictionary<string, PlayerData> PlayerDataDict { get; private set; } = new();
+    public PlayerTeam teamA { get; private set; } = new(TeamName.TeamA);
+    public PlayerTeam teamB { get; private set; } = new(TeamName.TeamB);
 
-    public PlayerTeam teamA;
-    public PlayerTeam teamB;
+    [HideInInspector] public GridTile selectedGridTile = null;
+    [HideInInspector] public PlayerBrain thisPlayerBrain;
+    private bool gameStarted = false;
 
-    private void Start()
-    {
-
-    }
+    
 
     public async Task LoadPlayers()
     {
-        if (LobbyManager.Instance.GetJoinedLobby() != null)
+        var lobby = LobbyManager.Instance.GetJoinedLobby();
+        if (lobby != null)
         {
-            PlayerList = new List<Player>(LobbyManager.Instance.GetJoinedLobby().Players);
-            AssignTeams();
-            Debug.Log($"Loaded {PlayerList.Count} players from the lobby.");
             await RelayManager.Instance.ConnectRelay();
+
+            PlayerDataDict.Clear();
+            foreach (var player in lobby.Players)
+                PlayerDataDict[player.Id] = new PlayerData(player);
+
+            AssignTeams();
+            Debug.Log($"Loaded {PlayerDataDict.Count} players from the lobby.");
         }
         else
         {
@@ -46,50 +41,60 @@ public class GameManager : DontDestroySingleton<GameManager>
         }
     }
 
-    public void InitPlayerData()
-    {
-        if (PlayerList.Count == 0) return;
-        PlayerDataList.Clear();
-        for (int i = 0; i < PlayerList.Count; i++)
-        {
-            var player = PlayerList[i];
-            var playerData = new PlayerData(player.Id, i, 0);
-            PlayerDataList.Add(playerData);
-        }
-        Debug.Log($"Initialized {PlayerDataList.Count} player data entries.");
-    }
-
-
     private void AssignTeams()
     {
         teamA = new PlayerTeam(TeamName.TeamA);
         teamB = new PlayerTeam(TeamName.TeamB);
 
-        teamA.Players.Clear();
-        teamB.Players.Clear();
-
-        foreach (var player in PlayerList)
+        foreach (var playerData in PlayerDataDict.Values)
         {
-            if (player.Data["PlayerTeam"].Value == "False")
-            {
-                teamB.Players.Add(player);
-            }
+            if (playerData.IsInTeamA)
+                teamA.Players.Add(playerData);
             else
-            {
-                teamA.Players.Add(player);
-            }
+                teamB.Players.Add(playerData);
         }
     }
 
-
-
-    [Command]
-    private void ShowPlayers()
+    public void StartGame()
     {
-        Debug.Log(PlayerList.Count + " Players in Game!");
-        foreach (var player in PlayerList)
+        Debug.Log("Game Started!");
+        gameStarted = true;
+        TurnManager.Instance.Initialize(PlayerDataDict.Count);
+    }
+
+    public async void SetPlayerReady()
+    {
+        if (PlayerDataDict.TryGetValue(AuthenticationService.Instance.PlayerId, out var playerData))
         {
-            Debug.Log("Player Id : " + player.Id);
+            playerData.SetReady(true);
+            thisPlayerBrain.UpdateReadyStateServerRpc(playerData.player.Id, true);
+            await WaitForAllPlayersReady();
+        }
+        else
+        {
+            Debug.Log("No player data");
         }
     }
+
+    private async Task WaitForAllPlayersReady()
+    {
+        while (PlayerDataDict.Values.Any(p => !p.isReady))
+        {
+            Debug.Log("Waiting for players...");
+            await Task.Delay(500);
+        }
+        Debug.Log("All players are ready.");
+        StartGame();
+    }
+    public async Task<TeamName> GetTeamNameAsync(Player player)
+    {
+        while (player == null || !player.Data.ContainsKey("PlayerTeam"))
+        {
+            Debug.Log("Waiting for player data...");
+            await Task.Delay(500);
+        }
+
+        return (player.Data["PlayerTeam"].Value != "False") ? TeamName.TeamB : TeamName.TeamA;
+    }
+
 }

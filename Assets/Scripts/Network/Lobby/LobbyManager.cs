@@ -7,6 +7,7 @@ using QFSW.QC;
 using System.Threading.Tasks;
 using System;
 using UnityEngine.SceneManagement;
+using Unity.Netcode;
 
 public class LobbyManager : DontDestroySingleton<LobbyManager>
 {
@@ -427,24 +428,12 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
     }
 
 
-    public Lobby GetHostLobby()
-    {
-        return hostLobby;
-    }
-
-    public Lobby GetJoinedLobby()
-    {
-        return joinedLobby;
-    }
 
     public void SyncJoinLobby(Lobby _lobby)
     {
         _lobby = joinedLobby;
     }
-    public QueryResponse GetQueryResponse()
-    {
-        return queryResponse;
-    }
+
 
     public async Task UpdateLobbyData(string key, string value)
     {
@@ -516,7 +505,26 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
 
         }
     }
+    public QueryResponse GetQueryResponse()
+    {
+        return queryResponse;
+    }
 
+    public Lobby GetHostLobby()
+    {
+        return hostLobby;
+    }
+
+    public Lobby GetJoinedLobby()
+    {
+        return joinedLobby;
+    }
+
+    public Player FindPlayerById(string playerId)
+    {
+        Player thisPlayer = joinedLobby.Players.Find(p => p.Id == playerId);
+        return thisPlayer;
+    }
     /// <summary>
     /// Quantum Console Command
     /// </summary>
@@ -535,4 +543,5 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
     {
         Debug.Log(joinedLobby.Data["RelayCode"].Value);
     }
+
 }

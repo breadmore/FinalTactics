@@ -48,8 +48,7 @@ public enum LoadSceneType
 public enum TileType
 {
     Neutral,    // 일반 이동 가능 타일
-    TeamA_Start, // A팀이 초기 배치 가능한 타일
-    TeamB_Start, // B팀이 초기 배치 가능한 타일
+    SpawnZone,
     GoalkeeperZone, // 골키퍼 앞 제한 구역
     Occupied,   // 현재 플레이어가 점유 중인 타일
 }
@@ -59,6 +58,20 @@ public enum TeamName
     TeamA,
     TeamB
 }
+
+public enum PhaseType
+{
+    Placement,      // 플레이어가 캐릭터를 Grid에 배치하는 턴 (배치 완료 시 게임 시작)
+    Decision,       // 각 플레이어가 행동을 결정하는 턴
+    Execution,      // 모든 결정이 끝난 후 행동을 실행하는 턴
+    Resolution,     // 행동 결과를 반영하고 표시하는 턴
+
+    TurnStart,      // 새 턴이 시작되었음을 알리는 턴 (버프/디버프 적용 등)
+    TurnEnd,        // 현재 턴이 끝났음을 알리는 턴 (상태 정리, 다음 턴으로 넘어가기 전 처리)
+    Pause,          // 일시 정지 상태 (네트워크 대기, UI 연출 등)
+    GameEnd         // 게임 종료 (승패 판정)
+}
+
 
 public static class GameConstants
 {

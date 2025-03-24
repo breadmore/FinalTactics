@@ -1,19 +1,30 @@
 using System;
 using System.Collections.Generic;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
-[Serializable]
 public class PlayerData
 {
-    public string PlayerId;   // 플레이어 고유 ID
-    public int JoinOrder;     // 입장 순서
-    public int Experience;    // 경험치
+    public Player player { get; private set; }
+    public TeamName team { get; private set; }
+    public bool isReady { get; private set; } = false;
 
-    public PlayerData(string playerId, int joinOrder, int experience)
+    public bool IsInTeamA => player.Data["PlayerTeam"].Value == "False";
+
+    public PlayerData(Player player)
     {
-        PlayerId = playerId;
-        JoinOrder = joinOrder;
-        Experience = experience;
+        this.player = player;
+        team = IsInTeamA ? TeamName.TeamA : TeamName.TeamB;
     }
+
+    public void SetReady(bool state) => isReady = state;
+}
+
+public class PlayerTeam
+{
+    public TeamName Name { get; private set; }
+    public List<PlayerData> Players { get; private set; } = new();
+
+    public PlayerTeam(TeamName name) => Name = name;
 }
 
 [Serializable]

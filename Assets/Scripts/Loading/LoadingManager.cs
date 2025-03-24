@@ -69,10 +69,11 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
             await Task.Yield();  // 계속 기다림 (매 프레임마다 확인)
         }
         canvas.gameObject.SetActive(false);
-        // 클릭이 있으면 씬을 활성화
-        asyncLoad.allowSceneActivation = true;  // 씬 활성화
+
+
         isLoading = false;
-        // 씬 전환 후, 캔버스를 숨기기
+        asyncLoad.allowSceneActivation = true;  // 씬 활성화
+
 
     }
 
@@ -80,9 +81,8 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
     {
         // Main 씬의 초기화 작업 (예: 네트워크 연결, UI 설정 등)
         await GameManager.Instance.LoadPlayers();
-        GameManager.Instance.InitPlayerData();
         //GameManager.Instance.AssignTeams();
-        Debug.Log("Main 씬 초기화 작업 완료");
+        Debug.Log("플레이어 로드 작업 완료");
 
         // Relay 연결이 완료될 때까지 기다리기
         await RelayManager.Instance.WaitForRelayConnection();

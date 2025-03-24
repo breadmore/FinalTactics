@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
@@ -48,7 +49,6 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
                         if (selectedCharacterData != null)
                         {
                             GameManager.Instance.selectedGridTile = hit.collider.GetComponent<GridTile>();
-                            Debug.Log(GameManager.Instance.selectedGridTile.name);
                             ToggleSelected();
                             characterCount++;
                         }
@@ -85,4 +85,5 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
     {
         isSelected = !isSelected;
     }
+
 }

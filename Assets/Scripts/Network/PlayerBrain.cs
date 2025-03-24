@@ -1,4 +1,6 @@
+Ôªøusing QFSW.QC;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -7,131 +9,87 @@ using UnityEngine;
 
 public class PlayerBrain : NetworkBehaviour
 {
-    [SerializeField] private Transform spawnPlayerPrefab;
-    private Player thisPlayer;
-    private Transform spawnedPlayerTransform;
-    private bool gameTeam = false;
-
-    private struct MyCustomData : INetworkSerializable
-    {
-        public int _int;
-        public bool _bool;
-        public FixedString128Bytes _message;
-
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref _int);
-            serializer.SerializeValue(ref _bool);
-            serializer.SerializeValue(ref _message);
-        }
-    }
-
-    private NetworkVariable<int> randomNumber = new NetworkVariable<int>(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    private NetworkVariable<MyCustomData> customData = new NetworkVariable<MyCustomData>(new MyCustomData
-    {
-        _int = 56,
-        _bool = true
-    }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
-    public override void OnNetworkSpawn()
-    {
-        randomNumber.OnValueChanged += (int previousValue, int newValue) =>
-        {
-            Debug.Log(OwnerClientId + "; randomNumber : " + randomNumber.Value);
-        };
-
-        customData.OnValueChanged += (MyCustomData previousValue, MyCustomData newValue) =>
-        {
-            Debug.Log(OwnerClientId + "; " + newValue._int + "; " + newValue._bool + "; " + newValue._message);
-        };
-    }
-
-    private void SetPlayer()
-    {
-        Player player = LobbyManager.Instance.GetJoinedLobby()?.Players?.Find(p => p.Id == AuthenticationService.Instance.PlayerId);
-        if (player != null)
-        {
-            thisPlayer = player;
-
-            if (player.Data.TryGetValue("PlayerTeam", out var playerTeamData))
-            {
-                bool.TryParse(playerTeamData.Value, out gameTeam);
-            }
-            Debug.Log($"Player {thisPlayer.Data["PlayerName"].Value} is " + gameTeam + " Team. ");
-        }
-        else
-        {
-            Debug.LogError("Player not found in the lobby.");
-        }
-    }
+    [SerializeField] private PlayerCharacter spawnPlayerPrefab;
+    private PlayerData thisPlayerData;
 
     private void Update()
     {
         if (!IsOwner) return;
-        
+
         if (GameManager.Instance.selectedGridTile != null)
         {
-            Debug.Log("Brain Detect Base Grid");
+            // ÏßÄÏ†ïÌï† Ïàò ÏóÜÎäî ÌÉÄÏùºÏùº Í≤ΩÏö∞
+            if (!GameManager.Instance.selectedGridTile.CanPlaceCharacter())
+            {
+                return;
+            }
             SpawnPlayer(GameManager.Instance.selectedGridTile);
+
             GameManager.Instance.selectedGridTile = null;
         }
     }
 
     private void Start()
     {
-        SetPlayer();
+        if (IsOwner)
+            GameManager.Instance.thisPlayerBrain = this;
+
+        if (GameManager.Instance.PlayerDataDict.TryGetValue(AuthenticationService.Instance.PlayerId, out thisPlayerData))
+            Debug.Log($"Player {thisPlayerData.player.Data["PlayerName"].Value} assigned to team {thisPlayerData.team}");
     }
 
-    private void SpawnPlayer(GridTile gridTile)
+    public void SpawnPlayer(GridTile gridTile)
     {
-        Debug.Log("spawn");
-        Quaternion rotation = gameTeam ? Quaternion.Euler(0, 90, 0) : Quaternion.Euler(0, -90, 0);
-        Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(GameManager.Instance.selectedGridTile.transform.position);
+        if (!IsOwner || gridTile == null) return;
 
-        Debug.Log(centerPosition);
+        Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
+        Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
 
-        if (IsHost) // Host(º≠πˆ)¿œ ∞ÊøÏ
-        {
-            SpawnPlayerServer(centerPosition, rotation);
-        }
-        else if (IsOwner) // ≈¨∂Û¿Ãæ∆Æ¿œ ∞ÊøÏ
-        {
-            SpawnPlayerServerRpc(centerPosition, rotation);
-        }
+        SpawnPlayerServerRpc(centerPosition, rotation);
     }
 
-    private void SpawnPlayerServer(Vector3 position, Quaternion rotation)
+    public TeamName GetPlayerTeam()
     {
-        GameObject playerCharacter = Instantiate(spawnPlayerPrefab.gameObject, position, rotation);
+        return thisPlayerData.team;
+    }
 
+
+    [ServerRpc]
+    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation)
+    {
+        PlayerCharacter playerCharacter = Instantiate(spawnPlayerPrefab.gameObject, position, rotation).GetComponent<PlayerCharacter>();
         NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
         networkObject.Spawn();
 
-        // ∏µÁ ≈¨∂Û¿Ãæ∆Æø°∞‘ µø±‚»≠
-        SpawnPlayerClientRpc(networkObject.NetworkObjectId, position, rotation);
     }
 
     [ServerRpc]
-    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation, ServerRpcParams serverRpcParams = default)
+    public void UpdateReadyStateServerRpc(string playerId, bool isReady)
     {
-        GameObject playerCharacter = Instantiate(spawnPlayerPrefab.gameObject, position, rotation);
-        NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
-        networkObject.Spawn();
-
-        // ∏µÁ ≈¨∂Û¿Ãæ∆Æø°∞‘ µø±‚»≠
-        SpawnPlayerClientRpc(networkObject.NetworkObjectId, position, rotation);
+        if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
+        {
+            playerData.SetReady(isReady);
+            Debug.Log($"Player {playerId} ready state updated to: {isReady}");
+            UpdateReadyStateClientRpc(playerId, isReady);
+        }
     }
 
     [ClientRpc]
-    private void SpawnPlayerClientRpc(ulong networkObjectId, Vector3 position, Quaternion rotation, ClientRpcParams clientRpcParams = default)
+    private void UpdateReadyStateClientRpc(string playerId, bool isReady)
     {
-        if (IsHost) return; // Host¥¬ ¿ÃπÃ º≠πˆø°º≠ √≥∏Æ«ﬂ¿∏π«∑Œ ¡ﬂ∫π Ω««‡ πÊ¡ˆ
+        if (IsHost) return;
 
-        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(networkObjectId))
+        if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
-            return; // ¿ÃπÃ ª˝º∫µ» ∞ÊøÏ πÊ¡ˆ
+            playerData.SetReady(isReady);
+            Debug.Log($"Player {playerId} ready state synced to: {isReady}");
         }
-
-        GameObject playerCharacter = Instantiate(spawnPlayerPrefab.gameObject, position, rotation);
     }
+
+    [Command]
+    public void ShowTeam()
+    {
+        Debug.Log(thisPlayerData.team.ToString());
+    }
+
 }

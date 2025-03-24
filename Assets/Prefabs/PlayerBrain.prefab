@@ -71,4 +71,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  spawnPlayerPrefab: {fileID: 6264046841178761832, guid: 62fe8f4bd429d744b896043519b3e0d6, type: 3}
+  spawnPlayerPrefab: {fileID: -8683075544959317850, guid: 62fe8f4bd429d744b896043519b3e0d6, type: 3}

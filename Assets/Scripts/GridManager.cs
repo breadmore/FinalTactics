@@ -1,5 +1,8 @@
 using NUnit.Framework;
 using System.Collections.Generic;
+using Unity.Netcode;
+using Unity.Services.Authentication;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 
 public class GridManager : Singleton<GridManager>
@@ -8,14 +11,19 @@ public class GridManager : Singleton<GridManager>
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     [SerializeField] private List<GridTile> gridTileList = new List<GridTile>();
     private Dictionary<Vector2Int, GridTile> gridTileDic = new Dictionary<Vector2Int, GridTile>();
-    void Start()
+
+    protected override void Awake()
     {
         grid = GetComponent<TilemapScaler>().tilemapGrid;
-        InitializeGrid();
-        TileTypeChange();
     }
 
-    private void InitializeGrid()
+    void Start()
+    {
+        InitializeGrid();
+        StartTileTypeChange();
+    }
+
+    public void InitializeGrid()
     {
         gridTileDic.Clear();  // 이미 존재하는 데이터는 제거
 
@@ -38,8 +46,10 @@ public class GridManager : Singleton<GridManager>
         }
     }
 
-    private void TileTypeChange()
+    public async void StartTileTypeChange()
     {
+        Player player = LobbyManager.Instance.FindPlayerById(AuthenticationService.Instance.PlayerId);
+        TeamName teamName = await GameManager.Instance.GetTeamNameAsync(player);
         // gridTileDic에서 모든 GridTile을 순회하며 조건에 맞게 TileType 변경
         foreach (var kvp in gridTileDic)
         {
@@ -52,9 +62,11 @@ public class GridManager : Singleton<GridManager>
                 gridTile.type = TileType.GoalkeeperZone;
             }
             // position.x가 7보다 작으면 TeamA_Start, 그 외에는 TeamB_Start
-            else
+            else if ((teamName == TeamName.TeamA && position.x < 7) ||
+                             (teamName == TeamName.TeamB && position.x >= 7))
             {
-                gridTile.type = position.x < 7 ? TileType.TeamA_Start : TileType.TeamB_Start;
+
+                gridTile.type = TileType.SpawnZone;
             }
         }
     }

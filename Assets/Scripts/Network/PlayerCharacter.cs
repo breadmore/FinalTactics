@@ -29,7 +29,7 @@ public class PlayerCharacter : NetworkBehaviour
     public void Move(Vector3Int targetPosition)
     {
         if (!IsOwner) return; // Netcode: 본인 캐릭터만 조작 가능
-        SetGridPosition(targetPosition);
+        //SetGridPosition(targetPosition);
         //transform.position = GridManager.Instance.GetNearestGridCenter(targetPosition);
     }
 }

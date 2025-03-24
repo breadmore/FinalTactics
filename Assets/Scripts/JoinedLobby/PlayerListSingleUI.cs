@@ -23,7 +23,7 @@ public class PlayerListSingleUI : MonoBehaviour
 
     public void SetPlayerTeamCheck(bool team)
     {
-        gameTeamText.text = team ? "2得" : "1得";
+        gameTeamText.text = team ? "B得" : "A得";
     }
 
     public void SetPlayerReadyCheck(bool ready)

@@ -11,7 +11,6 @@ public class RelayManager : DontDestroySingleton<RelayManager>
 {
     private string currentRelayCode = ""; // 현재 Relay 코드 저장
 
-    [Command]
     public async Task CreateRelay()
     {
         try
@@ -38,7 +37,6 @@ public class RelayManager : DontDestroySingleton<RelayManager>
         }
     }
 
-    [Command]
     public async Task JoinRelay(string joinCode)
     {
         try
