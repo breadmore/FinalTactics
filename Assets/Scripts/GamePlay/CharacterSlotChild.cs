@@ -44,15 +44,12 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         if (newCharacterData == null) return;
 
         characterData = newCharacterData;
-        SetcharacterSprite(characterData.characterSprite);
         SetCharacterData(characterData.characterStat);
     }
 
     public void SetcharacterSprite(Sprite newSprite)
     {
         if (characterData == null) return;
-
-        characterData.characterSprite = newSprite;
 
         if (thisImage != null && newSprite != null)
         {
@@ -81,13 +78,14 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         // 클릭 이미 돼있으면 리턴
         if (isSpawned) return;
 
-        slotParent?.ToggleSelected();
-        slotParent?.SelectCharacterData(characterData);
-        ToggleIsSpawned();
+        Debug.Log("Select Character!");
+        slotParent?.ToggleChildSelected();
+        GameManager.Instance.SetSelectedCharacterData(characterData);
+        CheckSpawned();
     }
 
     // 클릭(생성) 했는지 체크
-    public void ToggleIsSpawned()
+    public void CheckSpawned()
     {
         // 클릭 시 추가할 효과
 

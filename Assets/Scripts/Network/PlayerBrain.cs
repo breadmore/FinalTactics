@@ -1,10 +1,12 @@
 ﻿using QFSW.QC;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Matchmaker.Models;
 using UnityEngine;
 
 public class PlayerBrain : NetworkBehaviour
@@ -16,17 +18,6 @@ public class PlayerBrain : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        if (GameManager.Instance.selectedGridTile != null)
-        {
-            // 지정할 수 없는 타일일 경우
-            if (!GameManager.Instance.selectedGridTile.CanPlaceCharacter())
-            {
-                return;
-            }
-            SpawnPlayer(GameManager.Instance.selectedGridTile);
-
-            GameManager.Instance.selectedGridTile = null;
-        }
     }
 
     private void Start()
@@ -44,23 +35,98 @@ public class PlayerBrain : NetworkBehaviour
 
         Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
         Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
+        Vector2Int gridPosition = gridTile.gridPosition;  // 🛠 서버에서 사용할 위치 값 넘기기
 
-        SpawnPlayerServerRpc(centerPosition, rotation);
+        int characterId = GameManager.Instance.SelectedCharacterData.id;
+
+        // 서버에 생성 요청 (소유권을 클라이언트로 설정)
+        SpawnPlayerServerRpc(centerPosition, rotation, characterId, gridPosition, OwnerClientId);
     }
-
-    public TeamName GetPlayerTeam()
-    {
-        return thisPlayerData.team;
-    }
-
 
     [ServerRpc]
-    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation)
+    private void SpawnPlayerServerRpc(Vector3 centerPosition, Quaternion rotation, int characterId, Vector2Int gridPosition, ulong ownerClientId)
     {
-        PlayerCharacter playerCharacter = Instantiate(spawnPlayerPrefab.gameObject, position, rotation).GetComponent<PlayerCharacter>();
-        NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
-        networkObject.Spawn();
+        Debug.Log($"[Server] SpawnPlayerServerRpc 호출됨 - OwnerClientId: {ownerClientId}");
 
+        PlayerCharacter playerCharacter = Instantiate(spawnPlayerPrefab, centerPosition, rotation);
+        NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
+        if (networkObject == null)
+        {
+            Debug.LogError("[Server] 네트워크 오브젝트가 없습니다.");
+            return;
+        }
+
+        networkObject.SpawnWithOwnership(ownerClientId);
+        Debug.Log("ID 가져와라 : " + networkObject.NetworkObjectId);
+
+        playerCharacter.Initialize(
+            LoadDataManager.Instance.characterDataReader.GetCharacterDataById(characterId),
+            thisPlayerData.team,
+            gridPosition
+        );
+
+        // ✅ 서버에서 GridTile 상태 업데이트
+        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
+        gridTile.SetOccupied(playerCharacter);
+
+        // ✅ 클라이언트에게 GridTile 상태 동기화 요청
+        SyncGridTileClientRpc(gridPosition, networkObject.NetworkObjectId);
+    }
+
+    [ClientRpc]
+    private void SyncGridTileClientRpc(Vector2Int gridPosition, ulong networkObjectId)
+    {
+        if (IsHost) return; // 서버에서는 실행하지 않음
+
+        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject obj))
+        {
+            PlayerCharacter playerCharacter = obj.GetComponent<PlayerCharacter>();
+            if (playerCharacter != null)
+            {
+                gridTile.SetOccupied(playerCharacter);
+                Debug.Log($"[Client] GridTile 동기화 완료: {gridPosition}");
+            }
+        }
+    }
+
+
+    [ClientRpc]
+    private void SyncPlayerCharacterClientRpc(ulong objectId, int characterId, Vector2Int gridPosition)
+    {
+        if (IsHost) return;
+
+        StartCoroutine(WaitForNetworkObject(objectId, characterId, gridPosition));
+    }
+
+    private IEnumerator WaitForNetworkObject(ulong objectId, int characterId, Vector2Int gridPosition)
+    {
+        Debug.Log("[Client] SyncPlayerCharacterClientRpc 진입");
+
+        float timeout = 3f;
+        while (timeout > 0)
+        {
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(objectId, out NetworkObject obj))
+            {
+                PlayerCharacter playerCharacter = obj.GetComponent<PlayerCharacter>();
+                if (playerCharacter != null)
+                {
+                    playerCharacter.Initialize(
+                        LoadDataManager.Instance.characterDataReader.GetCharacterDataById(characterId),
+                        thisPlayerData.team,
+                        gridPosition
+                    );
+                    GameManager.Instance.SelectedGridTile.SetOccupied(playerCharacter);
+                    Debug.Log($"[Client] 플레이어 동기화 완료 - Character ID: {characterId}");
+                    yield break;
+                }
+            }
+
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        Debug.LogError("[Client] 네트워크 오브젝트를 찾을 수 없습니다!");
     }
 
     [ServerRpc]
@@ -85,6 +151,8 @@ public class PlayerBrain : NetworkBehaviour
             Debug.Log($"Player {playerId} ready state synced to: {isReady}");
         }
     }
+
+
 
     [Command]
     public void ShowTeam()

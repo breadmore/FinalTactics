@@ -10,14 +10,14 @@ using System.Linq;
 
 public class GameManager : Singleton<GameManager>
 {
-    public Camera mainCamera;
     public Dictionary<string, PlayerData> PlayerDataDict { get; private set; } = new();
     public PlayerTeam teamA { get; private set; } = new(TeamName.TeamA);
     public PlayerTeam teamB { get; private set; } = new(TeamName.TeamB);
 
-    [HideInInspector] public GridTile selectedGridTile = null;
-    [HideInInspector] public PlayerBrain thisPlayerBrain;
-    private bool gameStarted = false;
+
+    public GridTile SelectedGridTile { get; private set; } = null;
+    public CharacterData SelectedCharacterData { get; private set; } = null;
+    public PlayerBrain thisPlayerBrain;
 
     
 
@@ -58,7 +58,6 @@ public class GameManager : Singleton<GameManager>
     public void StartGame()
     {
         Debug.Log("Game Started!");
-        gameStarted = true;
         TurnManager.Instance.Initialize(PlayerDataDict.Count);
     }
 
@@ -74,6 +73,15 @@ public class GameManager : Singleton<GameManager>
         {
             Debug.Log("No player data");
         }
+    }
+    public void SetSelectedCharacterData(CharacterData characterData)
+    {
+        SelectedCharacterData = characterData;
+    }
+
+    public void SetSelectedGridTile(GridTile gridTile)
+    {
+        SelectedGridTile = gridTile;
     }
 
     private async Task WaitForAllPlayersReady()

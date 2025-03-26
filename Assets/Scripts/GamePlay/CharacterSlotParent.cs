@@ -1,22 +1,10 @@
 using Unity.Netcode;
 using UnityEngine;
+
 public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
-    private CharacterSlotBackgrounds characterSlotBackgrounds;
-    private CharacterDataReader characterDataReader;
-    private CharacterPrefabManager characterPrefabManager;
-
-    private CharacterData selectedCharacterData;
-
-    private bool isSelected = false;
-    private int characterCount;
-
-    private void Awake()
-    {
-        characterSlotBackgrounds = Resources.Load<CharacterSlotBackgrounds>("ScriptableObjects/CharacterSlotBackgrounds");
-        characterDataReader = Resources.Load<CharacterDataReader>("ScriptableObjects/CharacterDataReader");
-        characterPrefabManager = Resources.Load<CharacterPrefabManager>("ScriptableObjects/CharacterPrefabManager");
-    }
+    public bool isChildSelected { get; private set; } = false;
+    private int characterCount = 0;
 
     private void Start()
     {
@@ -25,38 +13,38 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
         {
             InitChild(i);
         }
-        characterCount = 0;
     }
 
     private void Update()
     {
-        // 최대 생성 수 까지만
-        if (characterCount >= GameConstants.MaxCharacterCount)
+        if (isChildSelected && Input.GetMouseButtonDown(0))
         {
-            gameObject.SetActive(false);
-            return;
-        }
-        if (isSelected)
-        {
-            if (Input.GetMouseButtonDown(0))
+            Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                Ray ray = GameManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
-                if (Physics.Raycast(ray, out hit))
+                if (hit.collider.CompareTag("Grid"))
                 {
-                    if (hit.collider.CompareTag("Grid"))
+                    if (GameManager.Instance.SelectedCharacterData != null)
                     {
-                        if (selectedCharacterData != null)
-                        {
-                            GameManager.Instance.selectedGridTile = hit.collider.GetComponent<GridTile>();
-                            ToggleSelected();
-                            characterCount++;
-                        }
-                        else
-                        {
-                            Debug.LogError("No character selected!");
-                        }
+                        GameManager.Instance.SetSelectedGridTile(hit.collider.GetComponent<GridTile>());
+                        // 배치 불가능할 경우 return
+                        if (!GameManager.Instance.SelectedGridTile.CanPlaceCharacter()) return;
+                        GameManager.Instance.thisPlayerBrain.SpawnPlayer(GameManager.Instance.SelectedGridTile);
+                        
+                        // spawn 성공시 아래 작업
+                        ToggleChildSelected();
+                        characterCount++;
+
+                        CheckCharacterLimit(); // 캐릭터 수 제한 확인
                     }
+                    else
+                    {
+                        Debug.LogError("No character selected!");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("No Grid Selected");
                 }
             }
         }
@@ -64,26 +52,28 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
     private void InitChild(int index)
     {
-        if (characterSlotBackgrounds == null || characterDataReader == null)
+        if (LoadDataManager.Instance.characterSlotBackgrounds == null || LoadDataManager.Instance.characterDataReader == null)
         {
             Debug.LogError("Data is not assigned!");
             return;
         }
 
-        CharacterData characterData = characterDataReader.DataList[index];
-        characterData.characterSprite = characterSlotBackgrounds.GetBackground(index);
+        CharacterData characterData = LoadDataManager.Instance.characterDataReader.DataList[index];
 
         childList[index].SetCharacterData(characterData);
+        childList[index].SetcharacterSprite(LoadDataManager.Instance.characterSlotBackgrounds.GetBackground(index));
     }
 
-    public void SelectCharacterData(CharacterData characterData)
+    public void ToggleChildSelected()
     {
-        selectedCharacterData = characterData;
+        isChildSelected = !isChildSelected;
     }
 
-    public void ToggleSelected()
+    private void CheckCharacterLimit()
     {
-        isSelected = !isSelected;
+        if (characterCount >= GameConstants.MaxCharacterCount)
+        {
+            gameObject.SetActive(false);
+        }
     }
-
 }

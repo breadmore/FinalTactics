@@ -49,7 +49,7 @@ public class CharacterDataList
 [Serializable]
 public class CharacterData
 {
-    public Sprite characterSprite;
+    //public Sprite characterSprite;
     public int id;
     public CharacterStat characterStat;
 

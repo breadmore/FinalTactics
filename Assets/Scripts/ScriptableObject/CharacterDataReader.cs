@@ -49,4 +49,9 @@ public class CharacterDataReader : DataReaderBase
         CharacterStat characterStat = new CharacterStat(speed, pass, shoot, dribble, tackle, stamina);
         DataList.Add(new CharacterData(id, characterStat));
     }
+
+    public CharacterData GetCharacterDataById(int characterID)
+    {
+        return DataList.Find(data => data.id == characterID);
+    }
 }
