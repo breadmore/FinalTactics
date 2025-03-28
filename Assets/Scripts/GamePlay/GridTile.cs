@@ -7,7 +7,7 @@ public class GridTile : MonoBehaviour
     public TileType Type { get; private set; }
     public Vector2Int gridPosition { get; private set; }
     public PlayerCharacter occupyingCharacter { get; private set; }
-    public bool isOccupied = false;
+    public bool isOccupied { get; private set; } = false;
 
     public bool CanPlaceCharacter()
     {

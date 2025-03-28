@@ -1,25 +1,16 @@
 using Mono.CSharp;
 using UnityEngine;
 
-public enum AttackAction
+public enum ActionType
 {
     Shoot,      // 슛
     Pass,       // 패스
-    Dribble     // 드리블
-}
-
-public enum DefenseAction
-{
+    Dribble,     // 드리블
     Block,      // 블록
     Tackle,     // 태클
-    Intercept   // 인터셉트
-}
-
-public enum GoalkeeperAction
-{
+    Intercept,   // 인터셉트
     Save,       // 슛 방어
-    Punch,      // 펀칭
-    Catch       // 공 잡기
+    None        // 안함
 }
 
 public enum CharacterType
@@ -71,7 +62,15 @@ public enum PhaseType
     Pause,          // 일시 정지 상태 (네트워크 대기, UI 연출 등)
     GameEnd         // 게임 종료 (승패 판정)
 }
-
+public enum GameState
+{
+    WaitingForPlayerReady,
+    CharacterDataSelected,
+    PlayerCharacterSelected,
+    GridTileSelected,
+    ActionSelected,
+    GameStarted
+}
 
 public static class GameConstants
 {

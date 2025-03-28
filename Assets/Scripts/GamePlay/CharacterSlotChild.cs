@@ -80,7 +80,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
 
         Debug.Log("Select Character!");
         slotParent?.ToggleChildSelected();
-        GameManager.Instance.SetSelectedCharacterData(characterData);
+        GameManager.Instance.OnCharacterDataSelected(characterData);
         CheckSpawned();
     }
 

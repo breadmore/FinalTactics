@@ -26,7 +26,7 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
                 {
                     if (GameManager.Instance.SelectedCharacterData != null)
                     {
-                        GameManager.Instance.SetSelectedGridTile(hit.collider.GetComponent<GridTile>());
+                        GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
                         // 배치 불가능할 경우 return
                         if (!GameManager.Instance.SelectedGridTile.CanPlaceCharacter()) return;
                         GameManager.Instance.thisPlayerBrain.SpawnPlayer(GameManager.Instance.SelectedGridTile);

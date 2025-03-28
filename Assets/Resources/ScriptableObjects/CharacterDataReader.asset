@@ -17,8 +17,7 @@ MonoBehaviour:
   START_ROW_LENGTH: 2
   END_ROW_LENGTH: 9
   DataList:
-  - characterSprite: {fileID: 0}
-    id: 0
+  - id: 0
     characterStat:
       speed: 1
       pass: 1
@@ -26,8 +25,7 @@ MonoBehaviour:
       dribble: 1
       tackle: 1
       stamina: 1
-  - characterSprite: {fileID: 0}
-    id: 1
+  - id: 1
     characterStat:
       speed: 2
       pass: 2
@@ -35,8 +33,7 @@ MonoBehaviour:
       dribble: 2
       tackle: 2
       stamina: 2
-  - characterSprite: {fileID: 0}
-    id: 2
+  - id: 2
     characterStat:
       speed: 3
       pass: 3
@@ -44,8 +41,7 @@ MonoBehaviour:
       dribble: 3
       tackle: 3
       stamina: 3
-  - characterSprite: {fileID: 0}
-    id: 3
+  - id: 3
     characterStat:
       speed: 4
       pass: 4
@@ -53,8 +49,7 @@ MonoBehaviour:
       dribble: 4
       tackle: 4
       stamina: 4
-  - characterSprite: {fileID: 0}
-    id: 4
+  - id: 4
     characterStat:
       speed: 5
       pass: 5
@@ -62,8 +57,7 @@ MonoBehaviour:
       dribble: 5
       tackle: 5
       stamina: 5
-  - characterSprite: {fileID: 0}
-    id: 5
+  - id: 5
     characterStat:
       speed: 6
       pass: 6
@@ -71,8 +65,7 @@ MonoBehaviour:
       dribble: 6
       tackle: 6
       stamina: 6
-  - characterSprite: {fileID: 0}
-    id: 6
+  - id: 6
     characterStat:
       speed: 7
       pass: 7
@@ -80,8 +73,7 @@ MonoBehaviour:
       dribble: 7
       tackle: 7
       stamina: 7
-  - characterSprite: {fileID: 0}
-    id: 7
+  - id: 7
     characterStat:
       speed: 8
       pass: 8

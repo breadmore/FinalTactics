@@ -71,6 +71,7 @@ public class PlayerBrain : NetworkBehaviour
 
         // ✅ 클라이언트에게 GridTile 상태 동기화 요청
         SyncGridTileClientRpc(gridPosition, networkObject.NetworkObjectId);
+
     }
 
     [ClientRpc]

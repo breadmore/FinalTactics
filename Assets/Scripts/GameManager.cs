@@ -6,6 +6,7 @@ using Unity.Netcode;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
 using System.Linq;
+using System;
 
 
 public class GameManager : Singleton<GameManager>
@@ -17,9 +18,73 @@ public class GameManager : Singleton<GameManager>
 
     public GridTile SelectedGridTile { get; private set; } = null;
     public CharacterData SelectedCharacterData { get; private set; } = null;
+    public ActionData SelectedActionData { get; private set; } = null;
+    public PlayerCharacter SelectedPlayerCharacter { get; private set; } = null;
+
+
     public PlayerBrain thisPlayerBrain;
 
-    
+    public GameState CurrentState { get; private set; } = GameState.WaitingForPlayerReady;
+
+
+    public void SetState(GameState newState, Action callback = null)
+    {
+        CurrentState = newState;
+        callback?.Invoke();  // 선택된 액션에 따라 필요한 추가 작업을 실행
+        Debug.Log($"State changed to {CurrentState}");
+    }
+    public void SetState(GameState newState)
+    {
+        CurrentState = newState;
+        Debug.Log($"State changed to {CurrentState}");
+    }
+
+    public void OnCharacterDataSelected(CharacterData characterData)
+    {
+        if (CurrentState == GameState.WaitingForPlayerReady)
+        {
+            SetState(GameState.CharacterDataSelected, () => SelectedCharacterData = characterData);
+        }
+    }
+
+    public void OnGridTileSelected(GridTile gridTile)
+    {
+        // 캐릭터 데이터 선택 후
+        if (CurrentState == GameState.CharacterDataSelected)
+        {
+            SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
+        }
+        // 액션 선택 후
+        else if(CurrentState == GameState.ActionSelected)
+        {
+            SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
+        }
+    }
+
+    public void OnActionSelected(ActionData actionData)
+    {
+        if (CurrentState == GameState.PlayerCharacterSelected)
+        {
+            SetState(GameState.ActionSelected, () => SelectedActionData = actionData);
+        }
+    }
+    public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
+    {
+        if(CurrentState == GameState.WaitingForPlayerReady)
+        {
+            SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
+        }
+        else if (CurrentState == GameState.GameStarted)
+        {
+            SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
+        }
+    }
+
+    public void ClearSelected<T>(ref T selectedField)
+    {
+        selectedField = default;
+    }
+
 
     public async Task LoadPlayers()
     {
@@ -74,15 +139,7 @@ public class GameManager : Singleton<GameManager>
             Debug.Log("No player data");
         }
     }
-    public void SetSelectedCharacterData(CharacterData characterData)
-    {
-        SelectedCharacterData = characterData;
-    }
 
-    public void SetSelectedGridTile(GridTile gridTile)
-    {
-        SelectedGridTile = gridTile;
-    }
 
     private async Task WaitForAllPlayersReady()
     {
@@ -104,5 +161,28 @@ public class GameManager : Singleton<GameManager>
 
         return (player.Data["PlayerTeam"].Value != "False") ? TeamName.TeamB : TeamName.TeamA;
     }
+
+    // 행동 결정 함수
+    public void ExecuteSelectedAction(Vector2Int targetPosition)
+    {
+        if (SelectedActionData == null || SelectedPlayerCharacter == null)
+        {
+            Debug.LogWarning("No action or character selected.");
+            return;
+        }
+
+        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetPosition);
+        IActionHandler handler = ActionHandlerFactory.CreateHandler(SelectedActionData.action);
+
+        if (handler != null && handler.CanExecute(SelectedPlayerCharacter, targetTile))
+        {
+            handler.ExecuteAction(SelectedPlayerCharacter, targetTile);
+        }
+        else
+        {
+            Debug.LogWarning("Action cannot be executed.");
+        }
+    }
+
 
 }

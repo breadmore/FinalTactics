@@ -71,6 +71,7 @@ public class CameraManager : Singleton<CameraManager>
                         PlayerCharacter playerCharacter = hit.collider.GetComponent<PlayerCharacter>();
                         if (playerCharacter != null)
                         {
+                            GameManager.Instance.OnPlayerCharacterSelected(playerCharacter);
                             MoveCameraTo(playerCharacter.transform.position); // 타겟 위치로 카메라 이동
                             cinemachineCamera.Follow = playerCharacter.transform; // 타겟을 따라가도록 설정
                         }
@@ -79,6 +80,8 @@ public class CameraManager : Singleton<CameraManager>
             }
         }
     }
+
+
 
     private void MoveCameraTo(Vector3 position)
     {
