@@ -15,6 +15,6 @@ public class LobbyLeaveUI : MonoBehaviour
         await LobbyManager.Instance.LeaveLobby();
         //await LobbyManager.Instance.UpdatePlayerReady();
         LobbyManager.Instance.playerListUI.DestroyAllPlayerList();
-        UIManager.Instance.SetState(UIState.JoinedLobby, UIState.Lobby);
+        LobbyUIManager.Instance.SetState(UIState.JoinedLobby, UIState.Lobby);
     }
 }

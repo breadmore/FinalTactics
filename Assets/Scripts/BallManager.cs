@@ -1,20 +1,57 @@
 using UnityEngine;
+using UnityEngine.UI;
 
-public class BallManager : MonoBehaviour
+public class BallManager : Singleton<BallManager>
 {
-    public static BallManager Instance { get; private set; }
-
+    public GameObject ballObjectPrefab;
+    public Button spawnBallButton;
     private GridTile currentTile;  // 공의 현재 위치
     private PlayerCharacter ballOwner;  // 공을 가진 플레이어
 
-    private void Awake()
+    private void Start()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
+        spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
     }
-
+    private void Update()
+    {
+        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall && Input.GetMouseButtonDown(0))
+        {
+            Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                if (hit.collider.CompareTag("Grid"))
+                {
+                        GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
+                        SpawnBall(GameManager.Instance.SelectedGridTile);
+                        // spawn 성공시 아래 작업
+                }
+                else
+                {
+                    Debug.LogError("No Grid Selected");
+                }
+            }
+        }
+    }
+    public void OnClickSpawnBallButton()
+    {
+        GameManager.Instance.OnWaitingForSpawnBall();
+    }
+    
+    public void SpawnBall(GridTile gridTile)
+    {
+        Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
+        GameObject ball = Instantiate(ballObjectPrefab, tilePosition, Quaternion.identity);
+        Debug.Log(ball.name + " Object Spawn! : " + gridTile.gridPosition);
+        if(gridTile.occupyingCharacter != null)
+        {
+            SetBallOwner(gridTile.occupyingCharacter);
+            Debug.Log("Ball Owner Exist!");
+        }
+        else
+        {
+            Debug.Log("No Ball Owner Character!");
+        }
+    }
     public void SetBallOwner(PlayerCharacter player)
     {
         ballOwner = player;

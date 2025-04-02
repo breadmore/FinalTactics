@@ -60,7 +60,7 @@ public class AuthenticateUI : MonoBehaviour
     {
         AuthenticationService.Instance.UpdatePlayerNameAsync(playerNameInput.text);
         PopUpGroup.Instance.CloseTopPopUp();
-        UIManager.Instance.SetState(UIState.Authentication, UIState.Lobby);
+        LobbyUIManager.Instance.SetState(UIState.Authentication, UIState.Lobby);
         OnAuthenticationSuccess?.Invoke();
     }
 }

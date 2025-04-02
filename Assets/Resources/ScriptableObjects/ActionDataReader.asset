@@ -15,7 +15,7 @@ MonoBehaviour:
   associatedSheet: 1evZJFACKIcKWhLEgkyfMmqNDzNKXAFjr1PghcqWWSiA
   associatedWorksheet: ActionData
   START_ROW_LENGTH: 2
-  END_ROW_LENGTH: 9
+  END_ROW_LENGTH: 10
   DataList:
   - id: 0
     action: 0
@@ -33,3 +33,5 @@ MonoBehaviour:
     action: 6
   - id: 7
     action: 7
+  - id: 8
+    action: 8

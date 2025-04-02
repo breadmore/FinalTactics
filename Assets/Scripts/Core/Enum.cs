@@ -3,6 +3,7 @@ using UnityEngine;
 
 public enum ActionType
 {
+    Move,
     Shoot,      // 슛
     Pass,       // 패스
     Dribble,     // 드리블
@@ -32,7 +33,7 @@ public enum LoadSceneType
 {
     Intro,
     Loading,
-    Main,
+    InGame,
     None
 }
 
@@ -69,7 +70,12 @@ public enum GameState
     PlayerCharacterSelected,
     GridTileSelected,
     ActionSelected,
-    GameStarted
+    GameStarted,
+    GameFinished,
+
+
+    // Test State
+    WaitingForSpawnBall
 }
 
 public static class GameConstants

@@ -34,7 +34,7 @@ public class LobbyCreateUI : MonoBehaviour
         await LobbyManager.Instance.CreateLobby(lobbyName, maxPlayers, lobbyData);
 
         // 플레이어 리스트 UI 출력
-        UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
+        LobbyUIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
         LobbyManager.Instance.playerListUI.CreatePlayer(LobbyManager.Instance.GetHostLobby().Players[0]);
         PopUpGroup.Instance.CloseTopPopUp();
     }

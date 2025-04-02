@@ -23,7 +23,7 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         {
             case LoadSceneType.Intro:
                 break;
-            case LoadSceneType.Main:
+            case LoadSceneType.InGame:
                 await LoadMainSceneAsync();
                 break;
             case LoadSceneType.Loading:
@@ -40,7 +40,7 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         loadingText.text = "Loading...";
 
         // 비동기 씬 로딩 시작
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Main");
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("InGame");
 
         // 씬이 로드되었지만 자동으로 활성화되지 않도록 설정
         asyncLoad.allowSceneActivation = false;  // 씬 활성화 지연
@@ -86,6 +86,9 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
 
         // Relay 연결이 완료될 때까지 기다리기
         await RelayManager.Instance.WaitForRelayConnection();
+
+        Debug.Log("씬이 활성화됨! UI를 활성화합니다.");
+        InGameUIManager.Instance.CharacterSlot.SetActive(true);
     }
 
 

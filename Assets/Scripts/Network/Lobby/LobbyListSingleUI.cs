@@ -32,7 +32,7 @@ public class LobbyListSingleUI : MonoBehaviour
     {
         await LobbyManager.Instance.JoinLobbyById(lobby.Id);
         LobbyManager.Instance.SyncJoinLobby(lobby);
-        UIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
+        LobbyUIManager.Instance.SetState(UIState.Lobby, UIState.JoinedLobby);
 
         LobbyManager.Instance.playerListUI.CreatePlayerListInLobby(lobby);
     }

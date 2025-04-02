@@ -8,7 +8,7 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 
     private void Start()
     {
-        actionCount = 8; 
+        actionCount = 9; 
         CreateChild(actionCount);
         for (int i = 0; i < actionCount; i++)
         {

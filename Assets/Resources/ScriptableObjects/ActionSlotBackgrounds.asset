@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ActionSlotBackgrounds
   m_EditorClassIdentifier: 
   backgroundImages:
+  - {fileID: 21300000, guid: d7fa131210d070147ac00ee7733309a4, type: 3}
   - {fileID: 21300000, guid: c6a2ecffaf341db4aa9de636d7af6e43, type: 3}
   - {fileID: 21300000, guid: f40d02989bc79b04397b8ffe80bcf0dd, type: 3}
   - {fileID: 21300000, guid: 5081ffcd0144a114d9725df377923f38, type: 3}

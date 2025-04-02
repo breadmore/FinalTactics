@@ -13,6 +13,7 @@ public static class ActionHandlerFactory
     {
         return actionType switch
         {
+            ActionType.Move => new MoveActionHandler(),
             ActionType.Pass => new PassActionHandler(),
             ActionType.Dribble => new DribbleActionHandler(),
             ActionType.Block => new BlockActionHandler(),
@@ -23,7 +24,25 @@ public static class ActionHandlerFactory
         };
     }
 }
+public class MoveActionHandler : IActionHandler
+{
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    {
+        return targetTile.isOccupied == false;
+    }
 
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    {
+        if (!CanExecute(player, targetTile))
+        {
+            Debug.LogWarning("Cannot move.");
+            return;
+        }
+
+        player.MoveToGridTile(targetTile);
+        Debug.Log($"{player.CharacterData.id} moves to {targetTile.gridPosition}.");
+    }
+}
 public class PassActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)

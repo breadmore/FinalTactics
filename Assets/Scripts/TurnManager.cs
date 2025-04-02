@@ -85,4 +85,6 @@ public class TurnManager : Singleton<TurnManager>
     }
 
     public int GetCurrentTurn() => currentTurn;
+
+
 }

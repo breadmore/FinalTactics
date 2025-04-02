@@ -126,7 +126,7 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
                     }
                     if (joinedLobby.Data.ContainsKey("GameStarted") && joinedLobby.Data["GameStarted"].Value == "true")
                     {
-                        Debug.Log("Game has started! Loading Main scene...");
+                        Debug.Log("Game has started! Loading InGame scene...");
                         await GetLoadSceneType();
                         await LoadingManager.Instance.DecideNextScene();
 
@@ -467,11 +467,11 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
 
         try
         {
-            // Load Type Main으로 설정
-            await UpdateLobbyData("LoadingType", "Main");
+            // Load Type InGame으로 설정
+            await UpdateLobbyData("LoadingType", "InGame");
 
             await UpdateLobbyData("GameStarted", "true");
-            Debug.Log("Game started! All players should load the Main scene.");
+            Debug.Log("Game started! All players should load the InGame scene.");
 
         }
         catch (LobbyServiceException e)
@@ -496,8 +496,8 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
             case "Intro":
                 LoadingManager.Instance.SetLoadSceneType(LoadSceneType.Intro);
                 break;
-            case "Main":
-                LoadingManager.Instance.SetLoadSceneType(LoadSceneType.Main);
+            case "InGame":
+                LoadingManager.Instance.SetLoadSceneType(LoadSceneType.InGame);
                 break;
             case "Loading":
                 LoadingManager.Instance.SetLoadSceneType(LoadSceneType.Loading);

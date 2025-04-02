@@ -59,6 +59,10 @@ public class GameManager : Singleton<GameManager>
         {
             SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
         }
+        else if(CurrentState == GameState.WaitingForSpawnBall)
+        {
+            SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
+        }
     }
 
     public void OnActionSelected(ActionData actionData)
@@ -77,6 +81,17 @@ public class GameManager : Singleton<GameManager>
         else if (CurrentState == GameState.GameStarted)
         {
             SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
+            Debug.Log("Action Slot Open!");
+            InGameUIManager.Instance.ActionSlot.SetActive(true);
+        }
+    }
+
+    // Test State
+    public void OnWaitingForSpawnBall()
+    {
+        if(CurrentState == GameState.WaitingForPlayerReady)
+        {
+            SetState(GameState.WaitingForSpawnBall);
         }
     }
 
@@ -124,6 +139,9 @@ public class GameManager : Singleton<GameManager>
     {
         Debug.Log("Game Started!");
         TurnManager.Instance.Initialize(PlayerDataDict.Count);
+        SetState(GameState.GameStarted);
+
+
     }
 
     public async void SetPlayerReady()
@@ -149,6 +167,7 @@ public class GameManager : Singleton<GameManager>
             await Task.Delay(500);
         }
         Debug.Log("All players are ready.");
+
         StartGame();
     }
     public async Task<TeamName> GetTeamNameAsync(Player player)

@@ -9,7 +9,7 @@ public enum UIState
     MainMenu
 }
 
-public class UIManager : Singleton<UIManager>
+public class LobbyUIManager : Singleton<LobbyUIManager>
 {
     private UIState currentState;
     [SerializeField] private GameObject loadingUI;
