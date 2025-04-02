@@ -40,14 +40,13 @@ public class MoveActionHandler : IActionHandler
         }
 
         player.MoveToGridTile(targetTile);
-        Debug.Log($"{player.CharacterData.id} moves to {targetTile.gridPosition}.");
     }
 }
 public class PassActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        return player.HasBall; // 공을 가진 경우만 패스 가능
+        return BallManager.Instance.IsBallOwnedBy(player);
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -59,13 +58,14 @@ public class PassActionHandler : IActionHandler
         }
 
         BallManager.Instance.PassBall(player, targetTile);
-        Debug.Log($"{player.CharacterData.id} passes the ball to {targetTile.gridPosition}.");
     }
 }
 public class DribbleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
+        Debug.Log("볼 주인 일치 : " + BallManager.Instance.IsBallOwnedBy(player));
+        Debug.Log("Tile Occupied : "+targetTile.isOccupied);
         return BallManager.Instance.IsBallOwnedBy(player) && targetTile.isOccupied == false;
     }
 
@@ -79,7 +79,6 @@ public class DribbleActionHandler : IActionHandler
 
         player.MoveToGridTile(targetTile);
         BallManager.Instance.MoveBall(targetTile);
-        Debug.Log($"{player.CharacterData.id} dribbles to {targetTile.gridPosition}.");
     }
 }
 
@@ -98,7 +97,6 @@ public class BlockActionHandler : IActionHandler
             return;
         }
 
-        Debug.Log($"{player.CharacterData.id} attempts to block the opponent at {targetTile.gridPosition}.");
         targetTile.occupyingCharacter.TryToBypassBlock();
     }
 }

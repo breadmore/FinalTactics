@@ -39,7 +39,7 @@ public class ActionDataReader : DataReaderBase
         DataList.Add(new ActionData(id, action));
     }
 
-    public ActionData GetActionDataById(int actionID)
+    public ActionData GetActionDataById(int? actionID)
     {
         return DataList.Find(data => data.id == actionID);
     }

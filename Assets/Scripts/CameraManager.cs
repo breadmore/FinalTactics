@@ -35,7 +35,7 @@ public class CameraManager : Singleton<CameraManager>
 
     private void HandleMouseMovement()
     {
-        if (isMovingToTarget) return; // 목표 위치로 이동 중이면 무빙 비활성화
+        if (isMovingToTarget || !Application.isFocused) return; // 창이 비활성화되었으면 이동 X
 
         Vector3 moveDirection = Vector3.zero;
         Vector3 mousePos = Input.mousePosition;
@@ -52,6 +52,7 @@ public class CameraManager : Singleton<CameraManager>
 
         cinemachineCamera.transform.position += moveDirection.normalized * moveSpeed * Time.deltaTime;
     }
+
 
     private void HandleDoubleClick()
     {

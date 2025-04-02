@@ -2,8 +2,8 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
-public class TurnManager : Singleton<TurnManager>
+using Unity.Netcode;
+public class TurnManager : NetworkSingleton<TurnManager>
 {
     public event Action<int> OnTurnStart; // 턴 시작 시 호출
     public event Action OnAllActionsSubmitted; // 모든 플레이어가 행동을 제출했을 때 호출
@@ -11,11 +11,23 @@ public class TurnManager : Singleton<TurnManager>
 
     private int currentTurn; // 현재 턴
     private int totalPlayers; // 총 플레이어 수
-    private Dictionary<int, string> playerActions = new Dictionary<int, string>(); // 플레이어 행동 저장
+    private Dictionary<ulong, int> PlayerActions = new Dictionary<ulong, int>(); // 플레이어 행동 저장
     private bool isGameActive = false; // 게임 진행 상태
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if (IsServer)
+        {
+            totalPlayers = (int)NetworkManager.Singleton.ConnectedClients.Count;
+            Initialize(totalPlayers);
+        }
+    }
 
     public void Initialize(int playerCount)
     {
+        if (!IsServer) return;
+
         totalPlayers = playerCount;
         currentTurn = 1;
         isGameActive = true;
@@ -26,29 +38,30 @@ public class TurnManager : Singleton<TurnManager>
     {
         if (!isGameActive) return;
 
-        playerActions.Clear(); // 이전 턴의 행동 초기화
+        PlayerActions.Clear(); // 이전 턴의 행동 초기화
         Debug.Log($"Turn {currentTurn} started!");
         OnTurnStart?.Invoke(currentTurn);
     }
 
-    public void SubmitAction(int playerId, string action)
+    [ServerRpc(RequireOwnership = false)]
+    public void SubmitActionServerRpc(ulong networkId, int actionId)
     {
-        if (!isGameActive || playerActions.ContainsKey(playerId)) return;
+        if (!isGameActive || PlayerActions.ContainsKey(networkId)) return;
 
-        playerActions[playerId] = action;
-        Debug.Log($"Player {playerId} submitted action: {action}");
+        PlayerActions[networkId] = actionId;
+        Debug.Log($"Player {networkId} submitted action: {actionId}");
 
-        if (playerActions.Count == totalPlayers)
-        {
-            ExecuteActions();
-        }
+        //if (PlayerActions.Count == totalPlayers)
+        //{
+        //    ExecuteActions();
+        //}
     }
 
     private void ExecuteActions()
     {
         Debug.Log($"Executing all actions for Turn {currentTurn}");
 
-        foreach (var action in playerActions)
+        foreach (var action in PlayerActions)
         {
             Debug.Log($"Player {action.Key} executes: {action.Value}");
         }

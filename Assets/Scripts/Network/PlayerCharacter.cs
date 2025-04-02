@@ -24,8 +24,32 @@ public class PlayerCharacter : NetworkBehaviour
 
     public void MoveToGridTile(GridTile tile)
     {
+        UpdateGridTileServerRpc(GridPosition, tile.gridPosition);
         GridPosition = tile.gridPosition;
         transform.position = GridManager.Instance.GetNearestGridCenter(tile.transform.position);
+    }
+
+    [ServerRpc]
+    private void UpdateGridTileServerRpc(Vector2Int currentTilePosition,Vector2Int targetTilePosition)
+    {
+        GridTile currentTile = GridManager.Instance.GetGridTileAtPosition(currentTilePosition);
+        currentTile.ClearOccupied();
+
+        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePosition);
+        targetTile.SetOccupied(this);
+        SyncGridTileClientRpc(currentTilePosition,targetTilePosition);
+    }
+
+    [ClientRpc]
+    private void SyncGridTileClientRpc(Vector2Int currentTilePosition, Vector2Int tilePosition)
+    {
+        if (IsHost) return; // 서버에서는 실행하지 않음
+
+        GridTile currentTile = GridManager.Instance.GetGridTileAtPosition(currentTilePosition);
+        currentTile.ClearOccupied();
+
+        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(tilePosition);
+        gridTile.SetOccupied(this);
     }
 
     // 임시 확률

@@ -8,7 +8,6 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
     private ActionSlotParent slotParent;
     public int ActionId { get; private set; }
 
-    public bool IsClicked { get; private set; } = false;
     public override void SetParent<T>(ILayoutGroupParent<T> newParent)
     {
         base.SetParent(newParent);
@@ -34,9 +33,6 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
 
     private void OnActionSelected()
     {
-        ToggleClicked();
-        if (!IsClicked) return;
-
         // Action ID를 기반으로 ActionData 검색 후 설정
         var actionData = LoadDataManager.Instance.actionDataReader.GetActionDataById(ActionId);
 
@@ -47,16 +43,10 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
         }
         else
         {
-            ToggleClicked();
             Debug.LogWarning($"ActionData not found for ID: {ActionId}");
         }
     }
 
-
-    private void ToggleClicked()
-    {
-        IsClicked = !IsClicked;
-    }
 
     public void SetActionSprite(Sprite sprite)
     {

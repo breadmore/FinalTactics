@@ -1,17 +1,26 @@
+ï»¿using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BallManager : Singleton<BallManager>
+public class BallManager : NetworkSingleton<BallManager>
 {
     public GameObject ballObjectPrefab;
+    public GameObject spawnedBall;
     public Button spawnBallButton;
-    private GridTile currentTile;  // °øÀÇ ÇöÀç À§Ä¡
-    private PlayerCharacter ballOwner;  // °øÀ» °¡Áø ÇÃ·¹ÀÌ¾î
+    public GridTile CurrentTile { get; private set; }
+
+    // âœ… ë„¤íŠ¸ì›Œí¬ ë™ê¸°í™” ë³€ìˆ˜ (ê³µ ì†Œìœ ì ID)
+    private NetworkVariable<ulong> BallOwnerNetworkId = new NetworkVariable<ulong>(
+        0,
+        NetworkVariableReadPermission.Everyone,  // ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ê°€ ì½ê¸° ê°€ëŠ¥
+        NetworkVariableWritePermission.Server    // ì„œë²„ë§Œ ê°’ ë³€ê²½ ê°€ëŠ¥
+    );
 
     private void Start()
     {
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
     }
+
     private void Update()
     {
         if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall && Input.GetMouseButtonDown(0))
@@ -21,9 +30,8 @@ public class BallManager : Singleton<BallManager>
             {
                 if (hit.collider.CompareTag("Grid"))
                 {
-                        GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
-                        SpawnBall(GameManager.Instance.SelectedGridTile);
-                        // spawn ¼º°ø½Ã ¾Æ·¡ ÀÛ¾÷
+                    GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
+                    SpawnBall(GameManager.Instance.SelectedGridTile);
                 }
                 else
                 {
@@ -32,72 +40,93 @@ public class BallManager : Singleton<BallManager>
             }
         }
     }
+
     public void OnClickSpawnBallButton()
     {
         GameManager.Instance.OnWaitingForSpawnBall();
     }
-    
+
     public void SpawnBall(GridTile gridTile)
     {
         Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
         GameObject ball = Instantiate(ballObjectPrefab, tilePosition, Quaternion.identity);
+        ball.GetComponent<NetworkObject>().Spawn(true);
+
+        spawnedBall = ball;
+        CurrentTile = gridTile;
         Debug.Log(ball.name + " Object Spawn! : " + gridTile.gridPosition);
-        if(gridTile.occupyingCharacter != null)
+
+        if (gridTile.occupyingCharacter != null)
         {
-            SetBallOwner(gridTile.occupyingCharacter);
-            Debug.Log("Ball Owner Exist!");
+            RequestSetBallOwnerServerRpc(gridTile.occupyingCharacter.NetworkObjectId);
         }
         else
         {
             Debug.Log("No Ball Owner Character!");
         }
     }
-    public void SetBallOwner(PlayerCharacter player)
+
+    // âœ… ê³µ ì†Œìœ ì ë³€ê²½ ìš”ì²­ (í´ë¼ì´ì–¸íŠ¸ â†’ ì„œë²„)
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestSetBallOwnerServerRpc(ulong playerNetworkId)
     {
-        ballOwner = player;
-        currentTile = GridManager.Instance.GetGridTileAtPosition(player.GridPosition); // Ä³¸¯ÅÍ À§Ä¡·Î °ø ÀÌµ¿
-        Debug.Log($"Ball is now owned by {player.CharacterData.id}");
+        BallOwnerNetworkId.Value = playerNetworkId;
+        Debug.Log($"Ball is now owned by player {playerNetworkId}");
     }
 
     public void MoveBall(GridTile targetTile)
     {
-        currentTile = targetTile;
-        ballOwner = null; // ¼ÒÀ¯ÀÚ°¡ ¾øÀ½ (°ø¸¸ ÀÌµ¿)
+        RequestMoveBallServerRpc(targetTile.gridPosition);
+    }
 
-        Debug.Log($"Ball moved to {targetTile.gridPosition}");
+    // âœ… ê³µ ì´ë™ ìš”ì²­ (í´ë¼ì´ì–¸íŠ¸ â†’ ì„œë²„)
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestMoveBallServerRpc(Vector2Int targetGridPosition)
+    {
+        CurrentTile = GridManager.Instance.GetGridTileAtPosition(targetGridPosition);
+        BallOwnerNetworkId.Value = 0;  // âœ… ì†Œìœ ê¶Œ í•´ì œ
+        spawnedBall.transform.position = GridManager.Instance.GetNearestGridCenter(CurrentTile.transform.position);
+
+        if (CurrentTile.occupyingCharacter != null)
+        {
+            BallOwnerNetworkId.Value = CurrentTile.occupyingCharacter.NetworkObjectId;
+        }
     }
 
     public void PassBall(PlayerCharacter passer, GridTile targetTile)
     {
-        if (ballOwner != passer)
+        if (BallOwnerNetworkId.Value != passer.NetworkObjectId)
         {
             Debug.LogWarning("Player does not have the ball!");
             return;
         }
 
         MoveBall(targetTile);
-        Debug.Log($"{passer.CharacterData.id} passed the ball to {targetTile.gridPosition}");
     }
 
     public void StealBall(PlayerCharacter stealer)
     {
-        ballOwner = stealer;
-        currentTile = GridManager.Instance.GetGridTileAtPosition(stealer.GridPosition);
-        Debug.Log($"{stealer.CharacterData.id} stole the ball!");
+        RequestStealBallServerRpc(stealer.NetworkObjectId);
+    }
+
+    // âœ… ê³µ íƒˆì·¨ ìš”ì²­ (í´ë¼ì´ì–¸íŠ¸ â†’ ì„œë²„)
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestStealBallServerRpc(ulong stealerNetworkId)
+    {
+        BallOwnerNetworkId.Value = stealerNetworkId;
+        //CurrentTile = GridManager.Instance.GetGridTileAtPosition(GridManager.Instance.GetCharacterByNetworkId(stealerNetworkId).GridPosition);
+        Debug.Log($"{stealerNetworkId} stole the ball!");
     }
 
     public bool IsBallAtTile(GridTile tile)
     {
-        return currentTile == tile;
+        return CurrentTile == tile;
     }
 
     public bool IsBallOwnedBy(PlayerCharacter player)
     {
-        return ballOwner == player;
+        Debug.Log("ë‚´ ID : " + player.NetworkObjectId);
+        Debug.Log("ë³¼ ì£¼ì¸ ID : " + BallOwnerNetworkId.Value);
+        return BallOwnerNetworkId.Value == player.NetworkObjectId;
     }
-
-    //public bool IsBallHeadingTowardsGoal()
-    //{
-    //    return currentTile.IsGoalTile();
-    //}
 }

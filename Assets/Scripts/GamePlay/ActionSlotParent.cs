@@ -1,11 +1,13 @@
+#nullable enable
+
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Services.Authentication;
 
 public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 {
 
     private int actionCount = 0;
-
     private void Start()
     {
         actionCount = 9; 
@@ -28,9 +30,9 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
                     if (GameManager.Instance.SelectedCharacterData != null)
                     {
                         GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
-                        GameManager.Instance.ExecuteSelectedAction(GameManager.Instance.SelectedGridTile.gridPosition);
-
-                        // spawn 성공시 아래 작업
+                        //GameManager.Instance.ExecuteSelectedAction(GameManager.Instance.SelectedGridTile.gridPosition);
+                        TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId, GameManager.Instance.SelectedActionData);
+                        // Action 성공시 아래 작업
 
                     }
                     else
@@ -57,4 +59,5 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
         childList[index].SetAction(index);
         childList[index].SetActionSprite(LoadDataManager.Instance.actionSlotBackgrounds.GetBackground(index));
     }
+
 }

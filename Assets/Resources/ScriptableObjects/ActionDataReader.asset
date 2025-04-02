@@ -18,20 +18,20 @@ MonoBehaviour:
   END_ROW_LENGTH: 10
   DataList:
   - id: 0
-    action: 0
-  - id: 1
-    action: 1
-  - id: 2
-    action: 2
-  - id: 3
-    action: 3
-  - id: 4
-    action: 4
-  - id: 5
-    action: 5
-  - id: 6
-    action: 6
-  - id: 7
-    action: 7
-  - id: 8
     action: 8
+  - id: 1
+    action: 0
+  - id: 2
+    action: 1
+  - id: 3
+    action: 2
+  - id: 4
+    action: 3
+  - id: 5
+    action: 4
+  - id: 6
+    action: 5
+  - id: 7
+    action: 6
+  - id: 8
+    action: 7

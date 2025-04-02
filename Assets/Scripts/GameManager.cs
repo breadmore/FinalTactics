@@ -18,7 +18,7 @@ public class GameManager : Singleton<GameManager>
 
     public GridTile SelectedGridTile { get; private set; } = null;
     public CharacterData SelectedCharacterData { get; private set; } = null;
-    public ActionData SelectedActionData { get; private set; } = null;
+    public int SelectedActionData { get; private set; } = 0;
     public PlayerCharacter SelectedPlayerCharacter { get; private set; } = null;
 
 
@@ -57,7 +57,7 @@ public class GameManager : Singleton<GameManager>
         // 액션 선택 후
         else if(CurrentState == GameState.ActionSelected)
         {
-            SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
+            SetState(GameState.GameStarted, () => SelectedGridTile = gridTile);
         }
         else if(CurrentState == GameState.WaitingForSpawnBall)
         {
@@ -69,7 +69,7 @@ public class GameManager : Singleton<GameManager>
     {
         if (CurrentState == GameState.PlayerCharacterSelected)
         {
-            SetState(GameState.ActionSelected, () => SelectedActionData = actionData);
+            SetState(GameState.ActionSelected, () => SelectedActionData = actionData.id);
         }
     }
     public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
@@ -80,9 +80,17 @@ public class GameManager : Singleton<GameManager>
         }
         else if (CurrentState == GameState.GameStarted)
         {
-            SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
-            Debug.Log("Action Slot Open!");
-            InGameUIManager.Instance.ActionSlot.SetActive(true);
+            if (playerCharacter.OwnerClientId == thisPlayerBrain.OwnerClientId)
+            {
+                SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
+                Debug.Log("Action Slot Open!");
+                InGameUIManager.Instance.ActionSlot.SetActive(true);
+            }
+            else
+            {
+                InGameUIManager.Instance.ActionSlot.SetActive(false);
+                Debug.Log("You cannot select this character!");
+            }
         }
     }
 
@@ -138,7 +146,7 @@ public class GameManager : Singleton<GameManager>
     public void StartGame()
     {
         Debug.Log("Game Started!");
-        TurnManager.Instance.Initialize(PlayerDataDict.Count);
+        //TurnManager.Instance.Initialize(PlayerDataDict.Count);
         SetState(GameState.GameStarted);
 
 
@@ -184,14 +192,15 @@ public class GameManager : Singleton<GameManager>
     // 행동 결정 함수
     public void ExecuteSelectedAction(Vector2Int targetPosition)
     {
-        if (SelectedActionData == null || SelectedPlayerCharacter == null)
+        if (SelectedActionData == 0 || SelectedPlayerCharacter == null)
         {
             Debug.LogWarning("No action or character selected.");
             return;
         }
 
         GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetPosition);
-        IActionHandler handler = ActionHandlerFactory.CreateHandler(SelectedActionData.action);
+        ActionType selectAction = LoadDataManager.Instance.actionDataReader.GetActionDataById(SelectedActionData).action;
+        IActionHandler handler = ActionHandlerFactory.CreateHandler(selectAction);
 
         if (handler != null && handler.CanExecute(SelectedPlayerCharacter, targetTile))
         {

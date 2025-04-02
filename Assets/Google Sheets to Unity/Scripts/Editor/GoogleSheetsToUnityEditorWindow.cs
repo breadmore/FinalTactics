@@ -3,6 +3,10 @@ using UnityEditor;
 using UnityEngine;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
+#if UNITY_2023_1_OR_NEWER
+using UnityEditor.Build;
+#endif
+
 #if GSTU_Legacy
 GoogleSheetsToUnity.Legacy
 #endif
@@ -66,7 +70,7 @@ namespace GoogleSheetsToUnity.Editor
 
         void OnGUI()
         {
-            tabID = GUILayout.Toolbar(tabID, new string[] {"Private", "Private (Legacy)", "Public"});
+            tabID = GUILayout.Toolbar(tabID, new string[] { "Private", "Private (Legacy)", "Public" });
 
             if (config == null)
             {
@@ -88,7 +92,6 @@ namespace GoogleSheetsToUnity.Editor
                         else
                         {
                             config.CLIENT_SECRET = EditorGUILayout.PasswordField("Client Secret Code", config.CLIENT_SECRET);
-
                         }
                         showSecret = GUILayout.Toggle(showSecret, "Show");
                         GUILayout.EndHorizontal();
@@ -115,7 +118,6 @@ namespace GoogleSheetsToUnity.Editor
                         else
                         {
                             config.CLIENT_SECRET = EditorGUILayout.PasswordField("Client Secret Code", config.CLIENT_SECRET);
-
                         }
                         showSecret = GUILayout.Toggle(showSecret, "Show");
                         GUILayout.EndHorizontal();
@@ -128,7 +130,7 @@ namespace GoogleSheetsToUnity.Editor
 
                         config.ACCESS_TOKEN = EditorGUILayout.TextField("Access Code", config.ACCESS_TOKEN);
 
-                        if (GUILayout.Button("Authentication with Acceess Code"))
+                        if (GUILayout.Button("Authentication with Access Code"))
                         {
                             SecurityPolicy.Instate();
                             config.REFRESH_TOKEN = oAuth2.AuthWithAccessCode(config.ACCESS_TOKEN);
@@ -161,12 +163,17 @@ namespace GoogleSheetsToUnity.Editor
                             DrawPreview();
                         }
 #else
-                        GUILayout.Label("This is the legacy version of GSTU and will be removed at a future date, if you wish to use it please press the button below");
-                        if(GUILayout.Button("Use Legacy Version"))
+                        GUILayout.Label("This is the legacy version of GSTU and will be removed at a future date. If you wish to use it, press the button below.");
+                        if (GUILayout.Button("Use Legacy Version"))
                         {
+#if UNITY_2023_1_OR_NEWER
+                            string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Standalone);
+                            PlayerSettings.SetScriptingDefineSymbols(NamedBuildTarget.Standalone, defines + ";GSTU_Legacy");
+#else
                             BuildTargetGroup buildTargetGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
                             string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(buildTargetGroup);
-                            PlayerSettings.SetScriptingDefineSymbolsForGroup(buildTargetGroup, (defines + ";" + "GSTU_Legacy"));
+                            PlayerSettings.SetScriptingDefineSymbolsForGroup(buildTargetGroup, defines + ";GSTU_Legacy");
+#endif
                         }
 #endif
                         break;
@@ -179,9 +186,9 @@ namespace GoogleSheetsToUnity.Editor
                     }
             }
 
-
             EditorUtility.SetDirty(config);
         }
+
 #if GSTU_Legacy
         void DrawPreview()
         {
