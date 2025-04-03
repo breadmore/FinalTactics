@@ -1,18 +1,31 @@
 using UnityEngine;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using System;
+using QFSW.QC;
+
 public class TurnManager : NetworkSingleton<TurnManager>
 {
-    public event Action<int> OnTurnStart; // 턴 시작 시 호출
-    public event Action OnAllActionsSubmitted; // 모든 플레이어가 행동을 제출했을 때 호출
-    public event Action<int> OnTurnEnd; // 턴 종료 시 호출
+    private struct PlayerAction
+    {
+        public ulong playerId;
+        public int actionId;
+        public GridTile targetTile;
+    }
 
-    private int currentTurn; // 현재 턴
-    private int totalPlayers; // 총 플레이어 수
-    private Dictionary<ulong, int> PlayerActions = new Dictionary<ulong, int>(); // 플레이어 행동 저장
-    private bool isGameActive = false; // 게임 진행 상태
+    public event Action<int> OnTurnStart;
+    public event Action OnAllActionsSubmitted;
+    public event Action<int> OnTurnEnd;
+
+    private int currentTurn;
+    private int totalPlayers;
+
+    private List<PlayerAction> defenseActions = new List<PlayerAction>();
+    private List<PlayerAction> commonActions = new List<PlayerAction>();
+    private List<PlayerAction> offenseActions = new List<PlayerAction>();
+
+    private bool isGameActive = false;
 
     public override void OnNetworkSpawn()
     {
@@ -37,37 +50,87 @@ public class TurnManager : NetworkSingleton<TurnManager>
     private void StartTurn()
     {
         if (!isGameActive) return;
+        defenseActions.Clear();
+        commonActions.Clear();
+        offenseActions.Clear();
 
-        PlayerActions.Clear(); // 이전 턴의 행동 초기화
         Debug.Log($"Turn {currentTurn} started!");
         OnTurnStart?.Invoke(currentTurn);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SubmitActionServerRpc(ulong networkId, int actionId)
+    public void SubmitActionServerRpc(ulong playerId, int actionId, Vector2Int targetTilePos)
     {
-        if (!isGameActive || PlayerActions.ContainsKey(networkId)) return;
+        if (!isGameActive) return;
 
-        PlayerActions[networkId] = actionId;
-        Debug.Log($"Player {networkId} submitted action: {actionId}");
+        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePos);
+        int actionType = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).type;
+        ActionCategory category = CategorizeAction(actionType);
 
-        //if (PlayerActions.Count == totalPlayers)
-        //{
-        //    ExecuteActions();
-        //}
+        PlayerAction newAction = new PlayerAction
+        {
+            playerId = playerId,
+            actionId = actionId,
+            targetTile = targetTile
+        };
+
+        switch (category)
+        {
+            case ActionCategory.Defense:
+                defenseActions.Add(newAction);
+                break;
+            case ActionCategory.Common:
+                commonActions.Add(newAction);
+                break;
+            case ActionCategory.Offense:
+                offenseActions.Add(newAction);
+                break;
+        }
+
+        Debug.Log($"Player {playerId} submitted {category} action: {actionId} at {targetTile.gridPosition}");
     }
 
-    private void ExecuteActions()
+    private ActionCategory CategorizeAction(int actionType)
+    {
+        switch (actionType)
+        {
+            case 2:
+                return ActionCategory.Defense;
+
+            case 1:
+                return ActionCategory.Offense;
+
+            default:
+                return ActionCategory.Common;
+        }
+    }
+
+    [ClientRpc]
+    private void UpdateClientStateClientRpc(ulong playerId, int actionId, Vector2Int position)
+    {
+        Debug.Log($"Updating Client State: Player {playerId} executed action {actionId} at {position}");
+    }
+
+    public void ExecuteActions()
     {
         Debug.Log($"Executing all actions for Turn {currentTurn}");
 
-        foreach (var action in PlayerActions)
-        {
-            Debug.Log($"Player {action.Key} executes: {action.Value}");
-        }
+        ExecuteActionList(defenseActions);
+        ExecuteActionList(commonActions);
+        ExecuteActionList(offenseActions);
 
         OnAllActionsSubmitted?.Invoke();
         StartCoroutine(EndTurn());
+    }
+
+    private void ExecuteActionList(List<PlayerAction> actionList)
+    {
+        foreach (var action in actionList)
+        {
+            PlayerCharacter player = GridManager.Instance.GetCharacterByNetworkId(action.playerId);
+            IActionHandler handler = ActionHandlerFactory.CreateHandler((ActionType)action.actionId);
+            handler.ExecuteAction(player, action.targetTile);
+        }
     }
 
     private IEnumerator EndTurn()
@@ -82,22 +145,24 @@ public class TurnManager : NetworkSingleton<TurnManager>
         }
     }
 
-    public void NextTurn()
+    [Command]
+    public void PrintAllActions()
     {
-        if (isGameActive)
+        Debug.Log("======= All Submitted Actions =======");
+
+        void PrintActionList(string category, List<PlayerAction> actions)
         {
-            StopAllCoroutines();
-            StartCoroutine(EndTurn());
+            Debug.Log($"--- {category} Actions ---");
+            foreach (var action in actions)
+            {
+                Debug.Log($"Player {action.playerId}: Action {action.actionId} at {action.targetTile.gridPosition}");
+            }
         }
+
+        PrintActionList("Defense", defenseActions);
+        PrintActionList("Common", commonActions);
+        PrintActionList("Offense", offenseActions);
+
+        Debug.Log("=====================================");
     }
-
-    public void EndGame()
-    {
-        isGameActive = false;
-        Debug.Log("Game Over! Stopping turns.");
-    }
-
-    public int GetCurrentTurn() => currentTurn;
-
-
 }

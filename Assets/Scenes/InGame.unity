@@ -12663,22 +12663,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2607355402012514577, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 525182436
-      objectReference: {fileID: 0}
-    - target: {fileID: 2607355402012514577, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 3512413425
-      objectReference: {fileID: 0}
     - target: {fileID: 2771340332989377355, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
       propertyPath: m_Name
       value: GameManager
       objectReference: {fileID: 0}
-    - target: {fileID: 3975041714103276144, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
-      propertyPath: mainCamera
-      value: 
-      objectReference: {fileID: 768489494}
+    - target: {fileID: 6396233957958733974, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2848694414
+      objectReference: {fileID: 0}
+    - target: {fileID: 6396233957958733974, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 64579721
+      objectReference: {fileID: 0}
     - target: {fileID: 7238945188757404215, guid: 144c40abf5a1b0c4e9013c0f498e9210, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

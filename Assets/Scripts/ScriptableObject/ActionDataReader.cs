@@ -13,6 +13,7 @@ public class ActionDataReader : DataReaderBase
     {
         int id = 0;
         ActionType action = ActionType.None;
+        int type = 0;
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -32,11 +33,14 @@ public class ActionDataReader : DataReaderBase
                         action = ActionType.None;  // 예외 처리
                     }
                     break;
+                case "type":
+                    type = int.Parse(list[i].value);
+                    break;
               
             }
         }
 
-        DataList.Add(new ActionData(id, action));
+        DataList.Add(new ActionData(id, action, type));
     }
 
     public ActionData GetActionDataById(int? actionID)

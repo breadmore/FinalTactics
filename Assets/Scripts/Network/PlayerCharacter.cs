@@ -15,12 +15,6 @@ public class PlayerCharacter : NetworkBehaviour
         GridPosition = gridPosition;
     }
 
-    public void Move(Vector2Int targetPosition)
-    {
-        GridPosition = targetPosition;
-        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(GridPosition);
-        transform.position = GridManager.Instance.GetNearestGridCenter(targetTile.transform.position);
-    }
 
     public void MoveToGridTile(GridTile tile)
     {

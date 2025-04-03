@@ -10,7 +10,13 @@ public abstract class NetworkSingleton<T> : NetworkBehaviour where T : NetworkSi
         {
             if (_instance == null)
             {
-                Debug.LogError(typeof(T).Name + " is missing from the scene!");
+                _instance = FindFirstObjectByType<T>();
+
+                if (_instance == null)
+                {
+                    GameObject singletonObject = new GameObject(typeof(T).Name);
+                    _instance = singletonObject.AddComponent<T>();
+                }
             }
             return _instance;
         }

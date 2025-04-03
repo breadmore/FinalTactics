@@ -3,6 +3,7 @@ using UnityEngine;
 
 public enum ActionType
 {
+    None,        // 안함
     Move,
     Shoot,      // 슛
     Pass,       // 패스
@@ -10,8 +11,7 @@ public enum ActionType
     Block,      // 블록
     Tackle,     // 태클
     Intercept,   // 인터셉트
-    Save,       // 슛 방어
-    None        // 안함
+    Save       // 슛 방어
 }
 
 public enum CharacterType
@@ -51,18 +51,6 @@ public enum TeamName
     TeamB
 }
 
-public enum PhaseType
-{
-    Placement,      // 플레이어가 캐릭터를 Grid에 배치하는 턴 (배치 완료 시 게임 시작)
-    Decision,       // 각 플레이어가 행동을 결정하는 턴
-    Execution,      // 모든 결정이 끝난 후 행동을 실행하는 턴
-    Resolution,     // 행동 결과를 반영하고 표시하는 턴
-
-    TurnStart,      // 새 턴이 시작되었음을 알리는 턴 (버프/디버프 적용 등)
-    TurnEnd,        // 현재 턴이 끝났음을 알리는 턴 (상태 정리, 다음 턴으로 넘어가기 전 처리)
-    Pause,          // 일시 정지 상태 (네트워크 대기, UI 연출 등)
-    GameEnd         // 게임 종료 (승패 판정)
-}
 public enum GameState
 {
     WaitingForPlayerReady,
@@ -75,9 +63,18 @@ public enum GameState
 
 
     // Test State
-    WaitingForSpawnBall
+    WaitingForSpawnBall,
+    WaitingForOtherPlayerAction,
+    WaitingForActionEnd,
+        
 }
 
+public enum ActionCategory 
+{ 
+    Defense, 
+    Common, 
+    Offense 
+}
 public static class GameConstants
 {
     // 그리드 관련 상수

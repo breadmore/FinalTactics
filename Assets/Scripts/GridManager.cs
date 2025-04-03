@@ -92,6 +92,18 @@ public class GridManager : Singleton<GridManager>
         return gridTileList.Find(tile => tile.gridPosition == position);
     }
 
+    public PlayerCharacter GetCharacterByNetworkId(ulong networkId)
+    {
+        foreach (var tile in gridTileList) // gridTiles는 현재 게임 내 모든 GridTile을 관리하는 리스트
+        {
+            if (tile.isOccupied && tile.occupyingCharacter != null && tile.occupyingCharacter.NetworkObjectId == networkId)
+            {
+                return tile.occupyingCharacter;
+            }
+        }
+        return null; // 해당하는 캐릭터가 없을 경우 null 반환
+    }
+
     public Grid GetGrid()
     {
         return grid;

@@ -31,7 +31,9 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
                     {
                         GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
                         //GameManager.Instance.ExecuteSelectedAction(GameManager.Instance.SelectedGridTile.gridPosition);
-                        TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId, GameManager.Instance.SelectedActionData);
+                        TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId, 
+                            GameManager.Instance.SelectedActionData, 
+                            GameManager.Instance.SelectedGridTile.gridPosition);
                         // Action 성공시 아래 작업
 
                     }

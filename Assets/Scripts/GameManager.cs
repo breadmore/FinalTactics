@@ -9,7 +9,7 @@ using System.Linq;
 using System;
 
 
-public class GameManager : Singleton<GameManager>
+public class GameManager : NetworkSingleton<GameManager>
 {
     public Dictionary<string, PlayerData> PlayerDataDict { get; private set; } = new();
     public PlayerTeam teamA { get; private set; } = new(TeamName.TeamA);
@@ -129,6 +129,7 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+
     private void AssignTeams()
     {
         teamA = new PlayerTeam(TeamName.TeamA);
@@ -147,9 +148,14 @@ public class GameManager : Singleton<GameManager>
     {
         Debug.Log("Game Started!");
         //TurnManager.Instance.Initialize(PlayerDataDict.Count);
+
         SetState(GameState.GameStarted);
+    }
 
-
+    public void StartAction()
+    {
+        SetState(GameState.WaitingForOtherPlayerAction);
+        TurnManager.Instance.ExecuteActions();
     }
 
     public async void SetPlayerReady()
@@ -159,6 +165,7 @@ public class GameManager : Singleton<GameManager>
             playerData.SetReady(true);
             thisPlayerBrain.UpdateReadyStateServerRpc(playerData.player.Id, true);
             await WaitForAllPlayersReady();
+
         }
         else
         {
@@ -174,9 +181,18 @@ public class GameManager : Singleton<GameManager>
             Debug.Log("Waiting for players...");
             await Task.Delay(500);
         }
+
+        if (CurrentState == GameState.WaitingForPlayerReady)
+        {
+            StartGame();
+        }else if(CurrentState == GameState.GameStarted)
+        {
+                    // 행동 실행
+            StartAction();
+        }
         Debug.Log("All players are ready.");
 
-        StartGame();
+
     }
     public async Task<TeamName> GetTeamNameAsync(Player player)
     {
@@ -212,5 +228,54 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    public void ResetAllPlayersReadyState()
+    {
+        foreach (var playerData in PlayerDataDict.Values)
+        {
+            playerData.SetReady(false);
+        }
 
+        Debug.Log("All players' ready state reset to false.");
+
+        //클라이언트들에게 동기화
+        ResetAllPlayersReadyStateClientRpc();
+    }
+
+    [ClientRpc]
+    private void ResetAllPlayersReadyStateClientRpc()
+    {
+        if (IsHost) return;
+
+        foreach (var playerData in PlayerDataDict.Values)
+        {
+            playerData.SetReady(false);
+        }
+
+        Debug.Log("All players' ready state synced to false.");
+    }
+
+    [Command]
+    public void PrintAllPlayersReadyState()
+    {
+        Debug.Log("===== All Players Ready State =====");
+
+        foreach (var playerData in PlayerDataDict.Values)
+        {
+            Debug.Log($"Player ID: {playerData.player.Id}, Ready: {playerData.isReady}");
+        }
+
+        Debug.Log("===================================");
+    }
+
+    [Command]
+    public void ShowCurrentState()
+    {
+        Debug.Log(CurrentState.ToString());
+    }
+
+    [Command]
+    public void TestReady()
+    {
+        ResetAllPlayersReadyState();
+    }
 }
