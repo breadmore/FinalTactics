@@ -13,7 +13,7 @@ public class CharacterDataReader : DataReaderBase
     {
         int id = 0;
         string name = "";
-        int speed = 0, pass = 0, shoot = 0, dribble = 0, tackle = 0, stamina = 0;
+        int speed = 0, pass = 0, shoot = 0, dribble = 0, tackle = 0, stamina = 0, type = 0;
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -43,10 +43,13 @@ public class CharacterDataReader : DataReaderBase
                 case "stamina":
                     stamina = int.Parse(list[i].value);
                     break;
+                case "type":
+                    type = int.Parse(list[i].value);
+                    break;
             }
         }
 
-        CharacterStat characterStat = new CharacterStat(speed, pass, shoot, dribble, tackle, stamina);
+        CharacterStat characterStat = new CharacterStat(speed, pass, shoot, dribble, tackle, stamina, type);
         DataList.Add(new CharacterData(id, characterStat));
     }
 

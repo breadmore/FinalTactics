@@ -23,7 +23,8 @@ public class BallManager : NetworkSingleton<BallManager>
 
     private void Update()
     {
-        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall && Input.GetMouseButtonDown(0))
+        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall 
+            && Input.GetMouseButtonDown(0))
         {
             Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))

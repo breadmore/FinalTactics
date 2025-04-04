@@ -35,7 +35,7 @@ public class PlayerBrain : NetworkBehaviour
 
         Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
         Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
-        Vector2Int gridPosition = gridTile.gridPosition;  // 🛠 서버에서 사용할 위치 값 넘기기
+        Vector2Int gridPosition = gridTile.gridPosition;  //서버에서 사용할 위치 값 넘기기
 
         int characterId = GameManager.Instance.SelectedCharacterData.id;
 
@@ -65,12 +65,13 @@ public class PlayerBrain : NetworkBehaviour
             gridPosition
         );
 
-        // ✅ 서버에서 GridTile 상태 업데이트
+        // 서버에서 GridTile 상태 업데이트
         GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
         gridTile.SetOccupied(playerCharacter);
 
-        // ✅ 클라이언트에게 GridTile 상태 동기화 요청
+        // 클라이언트에게 GridTile 상태 동기화 요청
         SyncGridTileClientRpc(gridPosition, networkObject.NetworkObjectId);
+        SyncPlayerCharacterClientRpc(networkObject.NetworkObjectId, characterId, gridPosition);
 
     }
 

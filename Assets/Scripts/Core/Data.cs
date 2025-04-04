@@ -71,8 +71,8 @@ public class CharacterStat
     public int dribble;
     public int tackle;
     public int stamina;
-
-    public CharacterStat(int speed, int pass, int shoot, int dribble, int tackle, int stamina)
+    public int type;
+    public CharacterStat(int speed, int pass, int shoot, int dribble, int tackle, int stamina, int type)
     {
         this.speed = speed;
         this.pass = pass;
@@ -80,5 +80,6 @@ public class CharacterStat
         this.dribble = dribble;
         this.tackle = tackle;
         this.stamina = stamina;
+        this.type = type;
     }
 }

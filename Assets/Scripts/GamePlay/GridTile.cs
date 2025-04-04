@@ -9,6 +9,8 @@ public class GridTile : MonoBehaviour
     public PlayerCharacter occupyingCharacter { get; private set; }
     public bool isOccupied { get; private set; } = false;
 
+    public float BlockProbability { get; private set; } = 0;
+    private bool isBlocking = false;
     public bool CanPlaceCharacter()
     {
         if (isOccupied) return false;
@@ -46,5 +48,12 @@ public class GridTile : MonoBehaviour
     {
         isOccupied = false;
         occupyingCharacter = null;
+    }
+
+    public void BlockProbabilityDecision(float blockProbability)
+    {
+        if (isBlocking) return;
+        isBlocking = !isBlocking;
+        BlockProbability = blockProbability;
     }
 }

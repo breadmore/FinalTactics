@@ -1,3 +1,4 @@
+using QFSW.QC;
 using System;
 using TMPro;
 using Unity.Services.Authentication;
@@ -56,11 +57,13 @@ public class AuthenticateUI : MonoBehaviour
         }
     }
 
-    private void CreatePlayer()
+    private async void CreatePlayer()
     {
-        AuthenticationService.Instance.UpdatePlayerNameAsync(playerNameInput.text);
+        await AuthenticationService.Instance.UpdatePlayerNameAsync(playerNameInput.text);
         PopUpGroup.Instance.CloseTopPopUp();
         LobbyUIManager.Instance.SetState(UIState.Authentication, UIState.Lobby);
         OnAuthenticationSuccess?.Invoke();
     }
+
+
 }

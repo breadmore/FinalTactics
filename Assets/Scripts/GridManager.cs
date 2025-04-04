@@ -4,6 +4,24 @@ using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 
+public static class GridUtils
+{
+    public static int GetDistance(Vector2Int from, Vector2Int to)
+    {
+        return Mathf.Max(Mathf.Abs(from.x - to.x), Mathf.Abs(from.y - to.y));
+    }
+
+      // 십자 방향으로만 거리 허용 (대각선 제외)
+    public static bool IsStraightLineInRange(Vector2Int from, Vector2Int to, int range)
+    {
+        int dx = Mathf.Abs(from.x - to.x);
+        int dy = Mathf.Abs(from.y - to.y);
+
+            // 한 쪽 방향으로만 거리 이동 + 거리 제한
+        return (dx == 0 && dy <= range) || (dy == 0 && dx <= range);
+    }
+}
+
 public class GridManager : Singleton<GridManager>
 {
     private Grid grid;
@@ -107,5 +125,10 @@ public class GridManager : Singleton<GridManager>
     public Grid GetGrid()
     {
         return grid;
+    }
+
+    public List<GridTile> GetAllGridTiles()
+    {
+        return gridTileList;
     }
 }

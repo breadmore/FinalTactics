@@ -19,65 +19,73 @@ MonoBehaviour:
   DataList:
   - id: 0
     characterStat:
-      speed: 5
-      pass: 4
+      speed: 1
+      pass: 1
       shoot: 5
       dribble: 4
       tackle: 1
       stamina: 4
+      type: 0
   - id: 1
     characterStat:
-      speed: 6
-      pass: 4
+      speed: 1
+      pass: 1
       shoot: 6
-      dribble: 4
+      dribble: 5
       tackle: 1
       stamina: 4
+      type: 0
   - id: 2
     characterStat:
-      speed: 7
-      pass: 4
+      speed: 2
+      pass: 2
       shoot: 7
-      dribble: 4
+      dribble: 6
       tackle: 1
       stamina: 6
+      type: 0
   - id: 3
     characterStat:
-      speed: 8
-      pass: 4
+      speed: 3
+      pass: 3
       shoot: 8
-      dribble: 4
+      dribble: 7
       tackle: 1
       stamina: 8
+      type: 0
   - id: 4
     characterStat:
-      speed: 5
-      pass: 4
+      speed: 1
+      pass: 1
       shoot: 1
       dribble: 2
       tackle: 5
       stamina: 4
+      type: 1
   - id: 5
     characterStat:
-      speed: 6
-      pass: 4
+      speed: 1
+      pass: 1
       shoot: 1
       dribble: 2
       tackle: 6
       stamina: 4
+      type: 1
   - id: 6
     characterStat:
-      speed: 7
-      pass: 4
+      speed: 2
+      pass: 2
       shoot: 1
       dribble: 2
       tackle: 7
       stamina: 6
+      type: 1
   - id: 7
     characterStat:
-      speed: 8
-      pass: 4
+      speed: 3
+      pass: 3
       shoot: 1
       dribble: 2
       tackle: 8
       stamina: 8
+      type: 1

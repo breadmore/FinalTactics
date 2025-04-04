@@ -122,4 +122,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77d08218e2107f44c9eac78cc0921707, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isOccupied: 0
+  baseMaterial: {fileID: 2100000, guid: b2f0a49e712c44d4d805a7d2040bb791, type: 2}
+  effectMaterial: {fileID: 2100000, guid: 57bd4ef137a455e4d81329388ca5bdef, type: 2}

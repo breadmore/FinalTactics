@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
-    public bool isChildSelected { get; private set; } = false;
     private int characterCount = 0;
 
     private void Start()
@@ -17,7 +16,7 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
     private void Update()
     {
-        if (isChildSelected && Input.GetMouseButtonDown(0))
+        if (GameManager.Instance.CurrentState == GameState.CharacterDataSelected && Input.GetMouseButtonDown(0))
         {
             Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
@@ -32,7 +31,6 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
                         GameManager.Instance.thisPlayerBrain.SpawnPlayer(GameManager.Instance.SelectedGridTile);
                         
                         // spawn 성공시 아래 작업
-                        ToggleChildSelected();
                         characterCount++;
 
                         CheckCharacterLimit(); // 캐릭터 수 제한 확인
@@ -62,11 +60,6 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
         childList[index].SetCharacterData(characterData);
         childList[index].SetcharacterSprite(LoadDataManager.Instance.characterSlotBackgrounds.GetBackground(index));
-    }
-
-    public void ToggleChildSelected()
-    {
-        isChildSelected = !isChildSelected;
     }
 
     private void CheckCharacterLimit()

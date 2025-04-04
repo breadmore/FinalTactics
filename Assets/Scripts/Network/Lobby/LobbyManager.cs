@@ -543,5 +543,9 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
     {
         Debug.Log(joinedLobby.Data["RelayCode"].Value);
     }
-
+    [Command]
+    public void ShowPlayerName()
+    {
+        Debug.Log(AuthenticationService.Instance.PlayerName);
+    }
 }

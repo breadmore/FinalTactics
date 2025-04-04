@@ -28,7 +28,13 @@ public class MoveActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        return targetTile.isOccupied == false;
+        if (targetTile.isOccupied)
+            return false;
+
+        int moveRange = player.CharacterData.characterStat.speed;
+        int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
+
+        return distance <= moveRange;
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -46,7 +52,12 @@ public class PassActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        return BallManager.Instance.IsBallOwnedBy(player);
+        if (!BallManager.Instance.IsBallOwnedBy(player)) return false;
+
+        int moveRange = player.CharacterData.characterStat.pass;
+        int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
+
+        return distance <= moveRange;
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -64,9 +75,16 @@ public class DribbleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        Debug.Log("볼 주인 일치 : " + BallManager.Instance.IsBallOwnedBy(player));
-        Debug.Log("Tile Occupied : "+targetTile.isOccupied);
-        return BallManager.Instance.IsBallOwnedBy(player) && targetTile.isOccupied == false;
+        if (!BallManager.Instance.IsBallOwnedBy(player)) return false;
+        if (targetTile.isOccupied)
+        {
+            // 사람 있을경우
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -76,7 +94,17 @@ public class DribbleActionHandler : IActionHandler
             Debug.LogWarning("Cannot dribble.");
             return;
         }
+        float randomValue = Random.Range(0f, 1f);
+        if (randomValue < targetTile.BlockProbability)
+        {
+            Debug.Log($"{player.CharacterData.id}의 드리블이 차단되었습니다!");
+            // 실패 처리 로직 (볼 뺏김 or 제자리 유지)
+            // 예시: 공만 떨어뜨리기
+            player.MoveToGridTile(targetTile);
+            return;
+        }
 
+        // 드리블 성공 시
         player.MoveToGridTile(targetTile);
         BallManager.Instance.MoveBall(targetTile);
     }
@@ -86,7 +114,7 @@ public class BlockActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        return BallManager.Instance.IsBallOwnedBy(player) && targetTile.isOccupied == false;
+        return GridUtils.IsStraightLineInRange(player.GridPosition, targetTile.gridPosition, GameConstants.BlockDistance);
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -96,8 +124,17 @@ public class BlockActionHandler : IActionHandler
             Debug.LogWarning("Block failed.");
             return;
         }
-
-        targetTile.occupyingCharacter.TryToBypassBlock();
+        float probability;
+        if (player.CharacterData.characterStat.type == 0)
+        {
+            probability = Random.Range(0f, 5f);
+        }
+        else
+        {
+            probability = Random.Range(0.5f, 1f);
+        }
+            
+        targetTile.BlockProbabilityDecision(probability);
     }
 }
 
@@ -106,7 +143,9 @@ public class TackleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        return BallManager.Instance.IsBallOwnedBy(player) && targetTile.isOccupied == false;
+        int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
+
+        return distance <= GameConstants.TackleDistance;
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)

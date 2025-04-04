@@ -10,6 +10,7 @@ public class PlayerCharacter : NetworkBehaviour
 
     public void Initialize(CharacterData characterData, TeamName team, Vector2Int gridPosition)
     {
+        Debug.Log("Init Ä³¸¯ÅÍ!!!");
         CharacterData = characterData;
         Team = team;
         GridPosition = gridPosition;

@@ -45,6 +45,14 @@ public class GameManager : NetworkSingleton<GameManager>
         {
             SetState(GameState.CharacterDataSelected, () => SelectedCharacterData = characterData);
         }
+        
+        
+        // Test State
+        else if(CurrentState == GameState.TestState)
+        {
+            Debug.Log("Test Character Data");
+            SelectedCharacterData = characterData;
+        }
     }
 
     public void OnGridTileSelected(GridTile gridTile)
@@ -57,11 +65,17 @@ public class GameManager : NetworkSingleton<GameManager>
         // 액션 선택 후
         else if(CurrentState == GameState.ActionSelected)
         {
+            ActionPreviewManager.Instance.ClearHighlights();
             SetState(GameState.GameStarted, () => SelectedGridTile = gridTile);
         }
         else if(CurrentState == GameState.WaitingForSpawnBall)
         {
             SetState(GameState.WaitingForPlayerReady, () => SelectedGridTile = gridTile);
+        }
+        // Test State
+        else if (CurrentState == GameState.TestState)
+        {
+            SelectedGridTile = gridTile;
         }
     }
 
@@ -71,14 +85,17 @@ public class GameManager : NetworkSingleton<GameManager>
         {
             SetState(GameState.ActionSelected, () => SelectedActionData = actionData.id);
         }
+
+        // Test State
+        else if (CurrentState == GameState.TestState)
+        {
+            SelectedActionData = actionData.id;
+        }
     }
     public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
     {
-        if(CurrentState == GameState.WaitingForPlayerReady)
-        {
-            SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
-        }
-        else if (CurrentState == GameState.GameStarted)
+        ActionPreviewManager.Instance.ClearHighlights();
+        if (CurrentState == GameState.GameStarted)
         {
             if (playerCharacter.OwnerClientId == thisPlayerBrain.OwnerClientId)
             {
@@ -91,6 +108,13 @@ public class GameManager : NetworkSingleton<GameManager>
                 InGameUIManager.Instance.ActionSlot.SetActive(false);
                 Debug.Log("You cannot select this character!");
             }
+        }
+
+        // Test State
+        else if (CurrentState == GameState.TestState)
+        {
+            Debug.Log("Test Player Character");
+            SelectedPlayerCharacter = playerCharacter;
         }
     }
 
@@ -182,17 +206,22 @@ public class GameManager : NetworkSingleton<GameManager>
             await Task.Delay(500);
         }
 
+        Debug.Log("All players are ready.");
+
         if (CurrentState == GameState.WaitingForPlayerReady)
         {
             StartGame();
-        }else if(CurrentState == GameState.GameStarted)
+        }
+        else if (CurrentState == GameState.GameStarted)
         {
-                    // 행동 실행
+            // 행동 실행
             StartAction();
         }
-        Debug.Log("All players are ready.");
 
+            // 시작 딜레이
+        await Task.Delay(1000);
 
+        ResetAllPlayersReadyState();
     }
     public async Task<TeamName> GetTeamNameAsync(Player player)
     {
@@ -277,5 +306,11 @@ public class GameManager : NetworkSingleton<GameManager>
     public void TestReady()
     {
         ResetAllPlayersReadyState();
+    }
+
+    [Command]
+    public void ShowPlayerStat()
+    {
+        Debug.Log(SelectedPlayerCharacter.CharacterData.characterStat.stamina.ToString());
     }
 }
