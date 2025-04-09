@@ -11,8 +11,10 @@ public enum ActionType
     Block,      // 블록
     Tackle,     // 태클
     Intercept,   // 인터셉트
-    Save       // 슛 방어
+    Save,       // 슛 방어
+    Length
 }
+public enum ShootOption { Cancel, Charge, Shoot }
 
 public enum CharacterType
 {
@@ -68,7 +70,6 @@ public enum GameState
     TestState
 
 }
-
 public enum ActionCategory 
 { 
     Defense, 
@@ -94,5 +95,5 @@ public static class GameConstants
 
     // 스탯 관련
     public const int BlockDistance = 1;
-    public const int TackleDistance = 2;
+    public const int TackleDistance = 1;
 }

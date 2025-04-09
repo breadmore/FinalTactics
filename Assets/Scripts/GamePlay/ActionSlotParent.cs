@@ -3,19 +3,20 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Services.Authentication;
+using System;
 
 public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 {
-
     private int actionCount = 0;
     private void Start()
     {
-        actionCount = 9; 
+        actionCount = (int)ActionType.Length; 
         CreateChild(actionCount);
         for (int i = 0; i < actionCount; i++)
         {
             InitChild(i);
         }
+
     }
 
     private void Update()

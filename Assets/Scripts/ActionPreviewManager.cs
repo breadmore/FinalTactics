@@ -10,6 +10,9 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
 
     public void HighlightTilesForAction(ActionType actionType, PlayerCharacter player)
     {
+        if(highlightedTiles.Count != 0)
+        ClearHighlights();
+
         Debug.Log("HightLight for action");
 
         // 1. 액션 핸들러 생성

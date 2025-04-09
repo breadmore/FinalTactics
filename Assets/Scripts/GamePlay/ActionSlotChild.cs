@@ -41,6 +41,8 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
             GameManager.Instance.OnActionSelected(actionData);
 
             ActionPreviewManager.Instance.HighlightTilesForAction(actionData.action, GameManager.Instance.SelectedPlayerCharacter);
+            
+            
             Debug.Log($"Selected Action: {actionData.action}");
         }
         else

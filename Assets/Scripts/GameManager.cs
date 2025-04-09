@@ -21,6 +21,8 @@ public class GameManager : NetworkSingleton<GameManager>
     public int SelectedActionData { get; private set; } = 0;
     public PlayerCharacter SelectedPlayerCharacter { get; private set; } = null;
 
+    // Option
+    public ShootOption SelectedShootOption { get; private set; } = ShootOption.Cancel;
 
     public PlayerBrain thisPlayerBrain;
 
@@ -65,8 +67,9 @@ public class GameManager : NetworkSingleton<GameManager>
         // 액션 선택 후
         else if(CurrentState == GameState.ActionSelected)
         {
-            ActionPreviewManager.Instance.ClearHighlights();
             SetState(GameState.GameStarted, () => SelectedGridTile = gridTile);
+            ActionPreviewManager.Instance.ClearHighlights();
+            InGameUIManager.Instance.ActionSlot.SetActive(false);
         }
         else if(CurrentState == GameState.WaitingForSpawnBall)
         {
@@ -81,9 +84,17 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public void OnActionSelected(ActionData actionData)
     {
+
         if (CurrentState == GameState.PlayerCharacterSelected)
         {
+            if (actionData.action == ActionType.Shoot)
+            {
+                //SelectedShootOption = ShootOption.Cancel;
+                InGameUIManager.Instance.ToggleOption();
+            }
+
             SetState(GameState.ActionSelected, () => SelectedActionData = actionData.id);
+            
         }
 
         // Test State
@@ -95,6 +106,7 @@ public class GameManager : NetworkSingleton<GameManager>
     public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
     {
         ActionPreviewManager.Instance.ClearHighlights();
+        //ClearAllSelected();
         if (CurrentState == GameState.GameStarted)
         {
             if (playerCharacter.OwnerClientId == thisPlayerBrain.OwnerClientId)
@@ -127,6 +139,20 @@ public class GameManager : NetworkSingleton<GameManager>
         }
     }
 
+    public void OnShootOption(ShootOption shootOption)
+    {
+        SelectedShootOption = shootOption;
+        InGameUIManager.Instance.ToggleOption();
+    }
+
+    public void ClearAllSelected()
+    {
+        SelectedGridTile = null;
+        SelectedCharacterData = null;
+        SelectedActionData = 0;
+        SelectedPlayerCharacter = null;
+        SelectedShootOption = ShootOption.Cancel;
+    }
     public void ClearSelected<T>(ref T selectedField)
     {
         selectedField = default;
@@ -282,6 +308,30 @@ public class GameManager : NetworkSingleton<GameManager>
 
         Debug.Log("All players' ready state synced to false.");
     }
+
+    public void Goal(TeamName teamName)
+    {
+        if(teamName == TeamName.TeamA)
+        {
+            teamA.score++;
+            Debug.Log("Team A Goal!!!!!");
+            if(teamA.score >= 3)
+            {
+                // A팀 승리
+            }
+        }
+        else
+        {
+            teamB.score++;
+            Debug.Log("Team B Goal!!!!!");
+            if (teamB.score >= 3)
+            {
+                // B팀 승리
+            }
+        }
+    }
+
+
 
     [Command]
     public void PrintAllPlayersReadyState()

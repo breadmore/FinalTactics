@@ -23,6 +23,7 @@ public class PlayerTeam
 {
     public TeamName Name { get; private set; }
     public List<PlayerData> Players { get; private set; } = new();
+    public int score = 0;
 
     public PlayerTeam(TeamName name) => Name = name;
 }

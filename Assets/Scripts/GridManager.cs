@@ -20,6 +20,33 @@ public static class GridUtils
             // 한 쪽 방향으로만 거리 이동 + 거리 제한
         return (dx == 0 && dy <= range) || (dy == 0 && dx <= range);
     }
+
+    public static float GetBlockSuccessProbability(PlayerCharacter blocker)
+    {
+        float probability;
+        if (blocker.CharacterData.characterStat.type == 0)
+        {
+            probability = Random.Range(0f, 0.5f);
+        }
+        else
+        {
+            probability = Random.Range(0.5f, 1f);
+        }
+        return probability;
+    }
+
+    public static float GetTackleSuccessProbability(PlayerCharacter tackler, PlayerCharacter target)
+    {
+        float baseChance = 0.6f;
+        float bonus = (tackler.CharacterData.characterStat.tackle - target.CharacterData.characterStat.dribble) * 0.05f;
+        return Mathf.Clamp01(baseChance + bonus);
+    }
+
+    public static float GetShootSuccessProbability(PlayerCharacter shooter, int distance)
+    {
+        float baseProbability = (shooter.CharacterData.characterStat.shoot * 8f) - (distance * 10f);
+        return Mathf.Clamp01(baseProbability / 100f); // 0~1 사이로 보정
+    }
 }
 
 public class GridManager : Singleton<GridManager>

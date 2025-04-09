@@ -44,7 +44,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         totalPlayers = playerCount;
         currentTurn = 1;
         isGameActive = true;
-        StartTurn();
+        //StartTurn();
     }
 
     private void StartTurn()
@@ -55,6 +55,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         offenseActions.Clear();
 
         Debug.Log($"Turn {currentTurn} started!");
+        GameManager.Instance.SetState(GameState.GameStarted);
         OnTurnStart?.Invoke(currentTurn);
     }
 
@@ -113,6 +114,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
 
     public void ExecuteActions()
     {
+        if (!IsServer) return;
         Debug.Log($"Executing all actions for Turn {currentTurn}");
 
         ExecuteActionList(defenseActions);
@@ -129,6 +131,8 @@ public class TurnManager : NetworkSingleton<TurnManager>
         {
             PlayerCharacter player = GridManager.Instance.GetCharacterByNetworkId(action.playerId);
             IActionHandler handler = ActionHandlerFactory.CreateHandler((ActionType)action.actionId);
+            Debug.Log(player.name);
+            Debug.Log(action.actionId);
             handler.ExecuteAction(player, action.targetTile);
         }
     }

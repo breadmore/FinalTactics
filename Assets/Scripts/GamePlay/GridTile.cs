@@ -9,7 +9,8 @@ public class GridTile : MonoBehaviour
     public PlayerCharacter occupyingCharacter { get; private set; }
     public bool isOccupied { get; private set; } = false;
 
-    public float BlockProbability { get; private set; } = 0;
+    public float BlockProbability = 0;
+    //public float BlockProbability { get; private set; } = 0;
     private bool isBlocking = false;
     public bool CanPlaceCharacter()
     {

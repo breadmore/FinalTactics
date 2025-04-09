@@ -1,12 +1,13 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.Splines;
 
 public class PlayerCharacter : NetworkBehaviour
 {
     public CharacterData CharacterData { get; private set; }
     public TeamName Team { get; private set; }
     public Vector2Int GridPosition { get; private set; }
-    public bool HasBall { get; private set; }
+    public int ShootChargeCount { get; private set; } = 0;
 
     public void Initialize(CharacterData characterData, TeamName team, Vector2Int gridPosition)
     {
@@ -19,11 +20,20 @@ public class PlayerCharacter : NetworkBehaviour
 
     public void MoveToGridTile(GridTile tile)
     {
-        UpdateGridTileServerRpc(GridPosition, tile.gridPosition);
+        GridTile currentTile = GridManager.Instance.GetGridTileAtPosition(GridPosition);
+        currentTile.ClearOccupied();
+
+        GridTile newTile = GridManager.Instance.GetGridTileAtPosition(tile.gridPosition);
+        newTile.SetOccupied(this);
+
         GridPosition = tile.gridPosition;
-        transform.position = GridManager.Instance.GetNearestGridCenter(tile.transform.position);
+        transform.position = GridManager.Instance.GetNearestGridCenter(newTile.transform.position);
+
+        SyncGridTileClientRpc(currentTile.gridPosition, tile.gridPosition);
     }
 
+
+    // 서버 호출용
     [ServerRpc]
     private void UpdateGridTileServerRpc(Vector2Int currentTilePosition,Vector2Int targetTilePosition)
     {
@@ -46,22 +56,14 @@ public class PlayerCharacter : NetworkBehaviour
         GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(tilePosition);
         gridTile.SetOccupied(this);
     }
-
-    // 임시 확률
-    public void TryToBypassBlock()
+    public void ChargeShoot()
     {
-        // 블록을 회피할 수 있는 로직 구현
-        bool success = Random.Range(0f, 1f) > 0.5f;  // 예시로 50% 확률로 회피 성공
-
-        if (success)
-        {
-            Debug.Log($"{CharacterData.id} successfully bypassed the block!");
-        }
-        else
-        {
-            Debug.Log($"{CharacterData.id} failed to bypass the block.");
-        }
+        if (ShootChargeCount < 3)
+            ShootChargeCount++;
     }
 
-
+    public void ResetShootCharge()
+    {
+        ShootChargeCount = 0;
+    }
 }

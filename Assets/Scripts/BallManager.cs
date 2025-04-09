@@ -9,11 +9,10 @@ public class BallManager : NetworkSingleton<BallManager>
     public Button spawnBallButton;
     public GridTile CurrentTile { get; private set; }
 
-    // ✅ 네트워크 동기화 변수 (공 소유자 ID)
     private NetworkVariable<ulong> BallOwnerNetworkId = new NetworkVariable<ulong>(
         0,
-        NetworkVariableReadPermission.Everyone,  // 모든 클라이언트가 읽기 가능
-        NetworkVariableWritePermission.Server    // 서버만 값 변경 가능
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
     );
 
     private void Start()
@@ -23,102 +22,88 @@ public class BallManager : NetworkSingleton<BallManager>
 
     private void Update()
     {
-        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall 
+        if (!IsServer) return;  // 👈 서버에서만 실행
+
+        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall
             && Input.GetMouseButtonDown(0))
         {
             Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
+            if (Physics.Raycast(ray, out RaycastHit hit) && hit.collider.CompareTag("Grid"))
             {
-                if (hit.collider.CompareTag("Grid"))
-                {
-                    GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
-                    SpawnBall(GameManager.Instance.SelectedGridTile);
-                }
-                else
-                {
-                    Debug.LogError("No Grid Selected");
-                }
+                var tile = hit.collider.GetComponent<GridTile>();
+                GameManager.Instance.OnGridTileSelected(tile);
+                SpawnBall(tile);
             }
         }
     }
 
     public void OnClickSpawnBallButton()
     {
+        if (!IsServer) return;
         GameManager.Instance.OnWaitingForSpawnBall();
     }
 
     public void SpawnBall(GridTile gridTile)
     {
-        Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
-        GameObject ball = Instantiate(ballObjectPrefab, tilePosition, Quaternion.identity);
-        ball.GetComponent<NetworkObject>().Spawn(true);
+        if (!IsServer) return;
 
-        spawnedBall = ball;
+        Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
+        spawnedBall = Instantiate(ballObjectPrefab, tilePosition, Quaternion.identity);
+        spawnedBall.GetComponent<NetworkObject>().Spawn(true);
+
         CurrentTile = gridTile;
-        Debug.Log(ball.name + " Object Spawn! : " + gridTile.gridPosition);
 
         if (gridTile.occupyingCharacter != null)
         {
-            RequestSetBallOwnerServerRpc(gridTile.occupyingCharacter.NetworkObjectId);
-        }
-        else
-        {
-            Debug.Log("No Ball Owner Character!");
+            SetBallOwner(gridTile.occupyingCharacter.NetworkObjectId);
         }
     }
 
-    // ✅ 공 소유자 변경 요청 (클라이언트 → 서버)
-    [ServerRpc(RequireOwnership = false)]
-    private void RequestSetBallOwnerServerRpc(ulong playerNetworkId)
+    // 서버 전용 메서드: 공 소유자 설정
+    public void SetBallOwner(ulong playerNetworkId)
     {
+        if (!IsServer) return;
         BallOwnerNetworkId.Value = playerNetworkId;
-        Debug.Log($"Ball is now owned by player {playerNetworkId}");
     }
 
+    // 서버 전용 메서드: 공 이동
     public void MoveBall(GridTile targetTile)
     {
-        RequestMoveBallServerRpc(targetTile.gridPosition);
-    }
+        if (!IsServer) return;
 
-    // ✅ 공 이동 요청 (클라이언트 → 서버)
-    [ServerRpc(RequireOwnership = false)]
-    private void RequestMoveBallServerRpc(Vector2Int targetGridPosition)
-    {
-        CurrentTile = GridManager.Instance.GetGridTileAtPosition(targetGridPosition);
-        BallOwnerNetworkId.Value = 0;  // ✅ 소유권 해제
-        spawnedBall.transform.position = GridManager.Instance.GetNearestGridCenter(CurrentTile.transform.position);
+        CurrentTile = targetTile;
+        BallOwnerNetworkId.Value = 0;  // 소유권 해제
+        spawnedBall.transform.position = GridManager.Instance.GetNearestGridCenter(targetTile.transform.position);
 
-        if (CurrentTile.occupyingCharacter != null)
+        if (targetTile.occupyingCharacter != null)
         {
-            BallOwnerNetworkId.Value = CurrentTile.occupyingCharacter.NetworkObjectId;
+            SetBallOwner(targetTile.occupyingCharacter.NetworkObjectId);
         }
     }
 
+    // 서버 전용 메서드: 패스
     public void PassBall(PlayerCharacter passer, GridTile targetTile)
     {
+        if (!IsServer) return;
         if (BallOwnerNetworkId.Value != passer.NetworkObjectId)
         {
-            Debug.LogWarning("Player does not have the ball!");
+            Debug.LogWarning("Cannot pass: player doesn't have the ball.");
             return;
         }
 
         MoveBall(targetTile);
     }
 
+    // 서버 전용 메서드: 탈취
     public void StealBall(PlayerCharacter stealer)
     {
-        RequestStealBallServerRpc(stealer.NetworkObjectId);
+        if (!IsServer) return;
+
+        SetBallOwner(stealer.NetworkObjectId);
+        MoveBall(GridManager.Instance.GetGridTileAtPosition(stealer.GridPosition));
     }
 
-    // ✅ 공 탈취 요청 (클라이언트 → 서버)
-    [ServerRpc(RequireOwnership = false)]
-    private void RequestStealBallServerRpc(ulong stealerNetworkId)
-    {
-        BallOwnerNetworkId.Value = stealerNetworkId;
-        //CurrentTile = GridManager.Instance.GetGridTileAtPosition(GridManager.Instance.GetCharacterByNetworkId(stealerNetworkId).GridPosition);
-        Debug.Log($"{stealerNetworkId} stole the ball!");
-    }
-
+    // 클라이언트 전용 확인 함수들 (읽기만 허용)
     public bool IsBallAtTile(GridTile tile)
     {
         return CurrentTile == tile;
@@ -126,8 +111,6 @@ public class BallManager : NetworkSingleton<BallManager>
 
     public bool IsBallOwnedBy(PlayerCharacter player)
     {
-        Debug.Log("내 ID : " + player.NetworkObjectId);
-        Debug.Log("볼 주인 ID : " + BallOwnerNetworkId.Value);
         return BallOwnerNetworkId.Value == player.NetworkObjectId;
     }
 }
