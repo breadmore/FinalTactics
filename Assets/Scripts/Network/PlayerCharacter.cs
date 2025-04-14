@@ -9,14 +9,31 @@ public class PlayerCharacter : NetworkBehaviour
     public Vector2Int GridPosition { get; private set; }
     public int ShootChargeCount { get; private set; } = 0;
 
-    public void Initialize(CharacterData characterData, TeamName team, Vector2Int gridPosition)
+    public override void OnNetworkSpawn()
     {
-        Debug.Log("Init Ä³¸¯ÅÍ!!!");
+        if (NetworkManager.Singleton?.IsServer == true)
+        {
+            ObjectPool.Instance?.RegisterActiveCharacter(this);
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (NetworkManager.Singleton?.IsServer == true)
+        {
+            ObjectPool.Instance?.UnregisterActiveCharacter(this);
+        }
+    }
+
+    public void InitData(CharacterData characterData)
+    {
         CharacterData = characterData;
+    }
+    public void Initialize(TeamName team, Vector2Int gridPosition)
+    {
         Team = team;
         GridPosition = gridPosition;
     }
-
 
     public void MoveToGridTile(GridTile tile)
     {
@@ -66,4 +83,10 @@ public class PlayerCharacter : NetworkBehaviour
     {
         ShootChargeCount = 0;
     }
+
+    public void ResetPlayerCharacter()
+    {
+        ResetShootCharge();
+    }
+
 }

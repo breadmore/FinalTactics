@@ -49,13 +49,37 @@ public static class GridUtils
     }
 }
 
-public class GridManager : Singleton<GridManager>
+public class GridManager : NetworkSingleton<GridManager>
 {
     private Grid grid;
 
     [SerializeField] private List<GridTile> gridTileList = new List<GridTile>();
 
-    protected override void Awake()
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
+        }
+    }
+
+    private void HandleGameStateChanged(GameState state)
+    {
+        if (state == GameState.WaitingForReset)
+        {
+            Debug.Log($"{name}: 턴 시작 시 준비 행동 실행");
+            ResetAllGridTile();
+        }
+    }
+
+    public override void OnDestroy()
+    {
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnGameStateChanged -= HandleGameStateChanged;
+        base.OnDestroy();
+    }
+
+    private void Awake()
     {
         grid = GetComponent<TilemapScaler>().tilemapGrid;
     }
@@ -95,12 +119,12 @@ public class GridManager : Singleton<GridManager>
         {
             Vector2Int position = gridTile.gridPosition;
 
-            if ((position.x == 0 || position.x == GameConstants.GRID_SIZE.x - 1) && (position.y == 3 || position.y == 4))
+            if ((position.x == 0 || position.x == GameConstants.GRID_SIZE.x - 1) && (position.y == 4 || position.y == 5))
             {
                 gridTile.SetTileType(TileType.GoalkeeperZone);
             }
-            else if ((teamName == TeamName.TeamA && position.x < 7) ||
-                     (teamName == TeamName.TeamB && position.x >= 7))
+            else if ((teamName == TeamName.TeamA && position.x < GameConstants.GRID_SIZE.x/2) ||
+                     (teamName == TeamName.TeamB && position.x >= GameConstants.GRID_SIZE.x/2))
             {
                 gridTile.SetTileType(TileType.SpawnZone);
             }
@@ -117,6 +141,14 @@ public class GridManager : Singleton<GridManager>
         else
         {
             Debug.LogWarning($"GridTile not found at position {cellPosition}");
+        }
+    }
+
+    public void ResetAllGridTile()
+    {
+        foreach (var gridTile in gridTileList) 
+        {
+            gridTile.ResetGridTile();
         }
     }
 

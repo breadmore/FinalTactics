@@ -57,4 +57,13 @@ public class GridTile : MonoBehaviour
         isBlocking = !isBlocking;
         BlockProbability = blockProbability;
     }
+
+    public void ResetGridTile()
+    {
+        ClearOccupied();
+
+        BlockProbability = 0;
+        isBlocking = false;
+
+    }
 }

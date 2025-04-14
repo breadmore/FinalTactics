@@ -13,23 +13,21 @@ public class PlayerBrain : NetworkBehaviour
 {
     [SerializeField] private PlayerCharacter spawnPlayerPrefab;
     private PlayerData thisPlayerData;
-    private PlayerCharacter thisPlayerCharacter;
 
-    private void OnEnable()
+    public override void OnNetworkSpawn()
     {
-        GameEvents.OnGoalScored += HandleGoalScored;
-    }
+        if (IsServer)
+        {
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                Debug.Log("This is Server!!!!");
+                ObjectPool.Instance.PrePoolCharactersForPlayer(clientId);
+            }
 
-    private void OnDisable()
-    {
-        GameEvents.OnGoalScored -= HandleGoalScored;
-    }
-
-    private void HandleGoalScored()
-    {
+        }
         if (IsOwner)
         {
-            DespawnCharacterServerRpc();
+            GameManager.Instance.thisPlayerBrain = this;
         }
     }
 
@@ -51,50 +49,45 @@ public class PlayerBrain : NetworkBehaviour
     {
         if (!IsOwner || gridTile == null) return;
 
+        int characterId = GameManager.Instance.SelectedCharacterData.id;
         Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
         Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
         Vector2Int gridPosition = gridTile.gridPosition;  //서버에서 사용할 위치 값 넘기기
 
-        int characterId = GameManager.Instance.SelectedCharacterData.id;
-
         // 서버에 생성 요청 (소유권을 클라이언트로 설정)
-        SpawnPlayerServerRpc(centerPosition, rotation, characterId, gridPosition, OwnerClientId);
+        SpawnPlayerServerRpc(centerPosition,rotation,gridPosition, characterId, OwnerClientId);
     }
 
     [ServerRpc]
-    private void SpawnPlayerServerRpc(Vector3 centerPosition, Quaternion rotation, int characterId, Vector2Int gridPosition, ulong ownerClientId)
+    private void SpawnPlayerServerRpc(Vector3 centerPosition, Quaternion rotation, Vector2Int gridPosition, int characterId, ulong ownerClientId)
     {
-        Debug.Log($"[Server] SpawnPlayerServerRpc 호출됨 - OwnerClientId: {ownerClientId}");
-
-        PlayerCharacter playerCharacter = Instantiate(spawnPlayerPrefab, centerPosition, rotation);
-        NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
-
-        thisPlayerCharacter = playerCharacter;
-
-        if (networkObject == null)
+        Debug.Log("This is Server");
+        var character = ObjectPool.Instance.GetCharacterFromPool(ownerClientId, characterId);
+        if (character == null)
         {
-            Debug.LogError("[Server] 네트워크 오브젝트가 없습니다.");
+            Debug.LogError("캐릭터 풀에서 꺼내기 실패");
             return;
         }
 
-        networkObject.SpawnWithOwnership(ownerClientId);
-        Debug.Log("ID 가져와라 : " + networkObject.NetworkObjectId);
+        var netObj = character.GetComponent<NetworkObject>();
 
-        playerCharacter.Initialize(
-            LoadDataManager.Instance.characterDataReader.GetCharacterDataById(characterId),
+        character.transform.position = centerPosition;
+        character.transform.rotation = rotation;
+
+        character.Initialize(
             thisPlayerData.team,
             gridPosition
         );
 
-        // 서버에서 GridTile 상태 업데이트
-        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
-        gridTile.SetOccupied(playerCharacter);
+        netObj.SpawnWithOwnership(ownerClientId);
+        GridManager.Instance.GetGridTileAtPosition(gridPosition).SetOccupied(character);
 
-        // 클라이언트에게 GridTile 상태 동기화 요청
-        SyncGridTileClientRpc(gridPosition, networkObject.NetworkObjectId);
-        SyncPlayerCharacterClientRpc(networkObject.NetworkObjectId, characterId, gridPosition);
-
+        // 클라이언트에 알리기
+        SyncGridTileClientRpc(gridPosition, netObj.NetworkObjectId);
+        SyncPlayerCharacterClientRpc(netObj.NetworkObjectId, characterId, gridPosition);
     }
+
+
 
     [ClientRpc]
     private void SyncGridTileClientRpc(Vector2Int gridPosition, ulong networkObjectId)
@@ -135,7 +128,6 @@ public class PlayerBrain : NetworkBehaviour
                 if (playerCharacter != null)
                 {
                     playerCharacter.Initialize(
-                        LoadDataManager.Instance.characterDataReader.GetCharacterDataById(characterId),
                         thisPlayerData.team,
                         gridPosition
                     );
@@ -174,53 +166,6 @@ public class PlayerBrain : NetworkBehaviour
             Debug.Log($"Player {playerId} ready state synced to: {isReady}");
         }
     }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void DespawnCharacterServerRpc()
-    {
-        if (thisPlayerCharacter != null)
-        {
-            ulong networkObjectId = thisPlayerCharacter.NetworkObject.NetworkObjectId;
-
-            // 그리드 비우기
-            GridTile occupiedTile = GridManager.Instance.GetGridTileAtPosition(thisPlayerCharacter.GridPosition);
-            if (occupiedTile != null)
-            {
-                occupiedTile.SetOccupied(null);
-            }
-
-            thisPlayerCharacter.NetworkObject.Despawn(true); // true = destroy
-            thisPlayerCharacter = null;
-
-            // 클라이언트에 동기화
-            DespawnCharacterClientRpc(networkObjectId);
-        }
-    }
-
-    [ClientRpc]
-    private void DespawnCharacterClientRpc(ulong networkObjectId)
-    {
-        if (IsHost) return; // 서버는 이미 처리함
-
-        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out var obj))
-        {
-            var playerCharacter = obj.GetComponent<PlayerCharacter>();
-
-            if (playerCharacter != null)
-            {
-                // 그리드 비우기
-                GridTile occupiedTile = GridManager.Instance.GetGridTileAtPosition(playerCharacter.GridPosition);
-                if (occupiedTile != null)
-                {
-                    occupiedTile.SetOccupied(null);
-                }
-
-                Destroy(obj.gameObject); // 클라이언트에서 직접 제거
-                Debug.Log($"[Client] 캐릭터 제거됨 - NetworkObjectId: {networkObjectId}");
-            }
-        }
-    }
-
 
     [Command]
     public void ShowTeam()

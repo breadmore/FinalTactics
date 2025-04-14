@@ -114,9 +114,12 @@ public class BallManager : NetworkSingleton<BallManager>
         return BallOwnerNetworkId.Value == player.NetworkObjectId;
     }
 
+
     public void ResetBallPosition()
     {
+        Vector2Int gridPosition = new Vector2Int(7, 4);
         // 볼 위치 중앙 초기화
 
+        MoveBall(GridManager.Instance.GetGridTileAtPosition(gridPosition));
     }
 }

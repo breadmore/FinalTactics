@@ -29,17 +29,21 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public GameState CurrentState { get; private set; } = GameState.WaitingForPlayerReady;
 
+    public event Action<GameState> OnGameStateChanged;
 
     public void SetState(GameState newState, Action callback = null)
     {
         CurrentState = newState;
         callback?.Invoke();  // 선택된 액션에 따라 필요한 추가 작업을 실행
+        OnGameStateChanged?.Invoke(CurrentState);
         Debug.Log($"State changed to {CurrentState}");
     }
     public void SetState(GameState newState)
     {
         CurrentState = newState;
+        OnGameStateChanged?.Invoke(CurrentState);
         Debug.Log($"State changed to {CurrentState}");
+
     }
 
     public void OnCharacterDataSelected(CharacterData characterData)
@@ -113,14 +117,14 @@ public class GameManager : NetworkSingleton<GameManager>
             if (playerCharacter.OwnerClientId == thisPlayerBrain.OwnerClientId)
             {
                 SetState(GameState.PlayerCharacterSelected, () => SelectedPlayerCharacter = playerCharacter);
-                Debug.Log("Action Slot Open!");
                 InGameUIManager.Instance.ActionSlot.SetActive(true);
             }
             else
             {
                 InGameUIManager.Instance.ActionSlot.SetActive(false);
-                Debug.Log("You cannot select this character!");
             }
+
+
         }
 
         // Test State
@@ -348,18 +352,11 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         yield return new WaitForSeconds(2f);  // 골 연출 시간
 
-        ResetBallAndPlayers();  // 공 위치 및 플레이어 초기화
+        SetState(GameState.WaitingForReset);
 
-        SetState(GameState.WaitingForPlayerReady);  // 다시 시작
         ResetAllPlayersReadyState();  // 준비 상태 초기화
     }
 
-    private void ResetBallAndPlayers()
-    {
-        BallManager.Instance.ResetBallPosition();  // 중앙으로 이동
-        GameEvents.OnGoalScored?.Invoke(); // 이벤트 구독중인 player brain에서 사용
-        Debug.Log("All positions reset after goal.");
-    }
 
     [ClientRpc]
     private void SyncScoreClientRpc(int teamAScore, int teamBScore)

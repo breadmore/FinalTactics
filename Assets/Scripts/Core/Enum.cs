@@ -55,16 +55,22 @@ public enum TeamName
 
 public enum GameState
 {
-    WaitingForPlayerReady,
+    // Selected State
     CharacterDataSelected,
     PlayerCharacterSelected,
     GridTileSelected,
     ActionSelected,
+
+    // Game Flow State
     GameStarted,
     GameFinished,
+
+    // Waiting State
+    WaitingForPlayerReady,
     WaitingForSpawnBall,
     WaitingForOtherPlayerAction,
     WaitingForActionEnd,
+    WaitingForReset,
 
     // Test State
     TestState
@@ -80,7 +86,7 @@ public static class GameConstants
 {
     // 그리드 관련 상수
     public static readonly Vector3 CELL_SIZE = new Vector3(3f, 0f, 3.1f);
-    public static readonly Vector2 GRID_SIZE = new Vector2(14, 8);  // 14x8 그리드 크기
+    public static readonly Vector2 GRID_SIZE = new Vector2(16, 10);
 
     // 타일 관련 상수
     public const int TeamAStartX = 3;  // A팀 시작 구역의 X좌표 기준

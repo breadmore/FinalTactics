@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b697c16d8099d98409eafab9c068f20b, type: 3}
   m_Name: CharacterPrefabManager
   m_EditorClassIdentifier: 
-  characterPrefab: {fileID: 2394937624705757387, guid: 4b05d0e9846584c3eb08e0de9c26aedb, type: 3}
+  characterPrefab: {fileID: 2394937624705757387, guid: 62fe8f4bd429d744b896043519b3e0d6, type: 3}

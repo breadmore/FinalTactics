@@ -57,4 +57,9 @@ public class CharacterDataReader : DataReaderBase
     {
         return DataList.Find(data => data.id == characterID);
     }
+
+    public List<CharacterData> GetCharacterDataList()
+    {
+        return DataList;
+    }
 }
