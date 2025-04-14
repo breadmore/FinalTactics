@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Unity.Services.Authentication;
 using System.Linq;
 using System;
+using System.Collections;
 
 
 public class GameManager : NetworkSingleton<GameManager>
@@ -311,11 +312,11 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public void Goal(TeamName teamName)
     {
-        if(teamName == TeamName.TeamA)
+        if (teamName == TeamName.TeamA)
         {
             teamA.score++;
             Debug.Log("Team A Goal!!!!!");
-            if(teamA.score >= 3)
+            if (teamA.score >= 3)
             {
                 // A팀 승리
             }
@@ -329,8 +330,42 @@ public class GameManager : NetworkSingleton<GameManager>
                 // B팀 승리
             }
         }
+
+        // 클라이언트에게 골 연출 보여주기
+        NotifyGoalClientRpc(teamName);
+        SyncScoreClientRpc(teamA.score, teamB.score);
+        // 리셋 루틴 시작 (서버만 실행)
+        StartCoroutine(ResetAfterGoal());
     }
 
+    [ClientRpc]
+    private void NotifyGoalClientRpc(TeamName scoringTeam)
+    {
+        InGameUIManager.Instance.ShowGoalMessage(scoringTeam);
+    }
+
+    private IEnumerator ResetAfterGoal()
+    {
+        yield return new WaitForSeconds(2f);  // 골 연출 시간
+
+        ResetBallAndPlayers();  // 공 위치 및 플레이어 초기화
+
+        SetState(GameState.WaitingForPlayerReady);  // 다시 시작
+        ResetAllPlayersReadyState();  // 준비 상태 초기화
+    }
+
+    private void ResetBallAndPlayers()
+    {
+        BallManager.Instance.ResetBallPosition();  // 중앙으로 이동
+        GameEvents.OnGoalScored?.Invoke(); // 이벤트 구독중인 player brain에서 사용
+        Debug.Log("All positions reset after goal.");
+    }
+
+    [ClientRpc]
+    private void SyncScoreClientRpc(int teamAScore, int teamBScore)
+    {
+        InGameUIManager.Instance.UpdateScoreUI(teamAScore, teamBScore);
+    }
 
 
     [Command]
@@ -362,5 +397,13 @@ public class GameManager : NetworkSingleton<GameManager>
     public void ShowPlayerStat()
     {
         Debug.Log(SelectedPlayerCharacter.CharacterData.characterStat.stamina.ToString());
+    }
+
+    [Command]
+    public void ShowScore()
+    {
+        Debug.Log("A Team score : " + teamA.score);
+
+        Debug.Log("B Team score : " + teamB.score);
     }
 }

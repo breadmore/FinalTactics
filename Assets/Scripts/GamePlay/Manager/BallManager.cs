@@ -113,4 +113,10 @@ public class BallManager : NetworkSingleton<BallManager>
     {
         return BallOwnerNetworkId.Value == player.NetworkObjectId;
     }
+
+    public void ResetBallPosition()
+    {
+        // 볼 위치 중앙 초기화
+
+    }
 }

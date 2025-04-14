@@ -226,6 +226,7 @@ public class ShootActionHandler : IActionHandler
                 if (roll < successRate)
                 {
                     // 골 처리
+                    BallManager.Instance.MoveBall(targetTile);
                     GameManager.Instance.Goal(player.Team);
                 }
                 else

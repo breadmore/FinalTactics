@@ -13,13 +13,31 @@ public class PlayerBrain : NetworkBehaviour
 {
     [SerializeField] private PlayerCharacter spawnPlayerPrefab;
     private PlayerData thisPlayerData;
+    private PlayerCharacter thisPlayerCharacter;
+
+    private void OnEnable()
+    {
+        GameEvents.OnGoalScored += HandleGoalScored;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnGoalScored -= HandleGoalScored;
+    }
+
+    private void HandleGoalScored()
+    {
+        if (IsOwner)
+        {
+            DespawnCharacterServerRpc();
+        }
+    }
 
     private void Update()
     {
         if (!IsOwner) return;
 
     }
-
     private void Start()
     {
         if (IsOwner)
@@ -50,6 +68,9 @@ public class PlayerBrain : NetworkBehaviour
 
         PlayerCharacter playerCharacter = Instantiate(spawnPlayerPrefab, centerPosition, rotation);
         NetworkObject networkObject = playerCharacter.GetComponent<NetworkObject>();
+
+        thisPlayerCharacter = playerCharacter;
+
         if (networkObject == null)
         {
             Debug.LogError("[Server] 네트워크 오브젝트가 없습니다.");
@@ -154,8 +175,51 @@ public class PlayerBrain : NetworkBehaviour
         }
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void DespawnCharacterServerRpc()
+    {
+        if (thisPlayerCharacter != null)
+        {
+            ulong networkObjectId = thisPlayerCharacter.NetworkObject.NetworkObjectId;
 
+            // 그리드 비우기
+            GridTile occupiedTile = GridManager.Instance.GetGridTileAtPosition(thisPlayerCharacter.GridPosition);
+            if (occupiedTile != null)
+            {
+                occupiedTile.SetOccupied(null);
+            }
 
+            thisPlayerCharacter.NetworkObject.Despawn(true); // true = destroy
+            thisPlayerCharacter = null;
+
+            // 클라이언트에 동기화
+            DespawnCharacterClientRpc(networkObjectId);
+        }
+    }
+
+    [ClientRpc]
+    private void DespawnCharacterClientRpc(ulong networkObjectId)
+    {
+        if (IsHost) return; // 서버는 이미 처리함
+
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out var obj))
+        {
+            var playerCharacter = obj.GetComponent<PlayerCharacter>();
+
+            if (playerCharacter != null)
+            {
+                // 그리드 비우기
+                GridTile occupiedTile = GridManager.Instance.GetGridTileAtPosition(playerCharacter.GridPosition);
+                if (occupiedTile != null)
+                {
+                    occupiedTile.SetOccupied(null);
+                }
+
+                Destroy(obj.gameObject); // 클라이언트에서 직접 제거
+                Debug.Log($"[Client] 캐릭터 제거됨 - NetworkObjectId: {networkObjectId}");
+            }
+        }
+    }
 
 
     [Command]
@@ -163,5 +227,7 @@ public class PlayerBrain : NetworkBehaviour
     {
         Debug.Log(thisPlayerData.team.ToString());
     }
+
+
 
 }
