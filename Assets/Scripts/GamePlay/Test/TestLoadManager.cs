@@ -120,7 +120,7 @@ public class TestLoadManager : MonoBehaviour
         Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
         GameObject ball = Instantiate(BallManager.Instance.ballObjectPrefab, tilePosition, Quaternion.identity);
 
-        BallManager.Instance.spawnedBall = ball;
+        //BallManager.Instance.spawnedBall = ball;
 Debug.Log(ball.name + " Object Spawn! : " + gridTile.gridPosition);
     }
 }

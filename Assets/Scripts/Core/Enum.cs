@@ -78,9 +78,10 @@ public enum GameState
 }
 public enum ActionCategory 
 { 
-    Defense, 
     Common, 
-    Offense 
+    Offense,
+    Defense,
+    Keeper,
 }
 public static class GameConstants
 {

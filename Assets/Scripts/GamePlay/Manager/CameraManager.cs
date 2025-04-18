@@ -1,27 +1,30 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using Unity.Cinemachine;
 
 public class CameraManager : Singleton<CameraManager>
 {
     public Camera mainCamera;
     public CinemachineCamera cinemachineCamera; // Cinemachine Virtual Camera
-    public float moveSpeed = 10f; // Ä«¸Ş¶ó ÀÌµ¿ ¼Óµµ
-    public float edgeThreshold = 50f; // È­¸é ³¡ °¨Áö ¹üÀ§ (ÇÈ¼¿ ´ÜÀ§)
-    public float smoothTime = 0.2f; // Ä«¸Ş¶ó ÀÌµ¿ ºÎµå·¯¿ò
+    public float moveSpeed = 10f; // ì¹´ë©”ë¼ ì´ë™ ì†ë„
+    public float edgeThreshold = 50f; // í™”ë©´ ë ê°ì§€ ë²”ìœ„ (í”½ì…€ ë‹¨ìœ„)
+    public float smoothTime = 0.2f; // ì¹´ë©”ë¼ ì´ë™ ë¶€ë“œëŸ¬ì›€
     private Vector3 velocity = Vector3.zero;
     private Vector3 targetPosition;
     private bool isMovingToTarget = false;
 
     private float lastClickTime = 0f;
-    private float doubleClickThreshold = 0.3f; // ´õºíÅ¬¸¯ ÀÎ½Ä ½Ã°£ °£°İ
+    private float doubleClickThreshold = 0.3f; // ë”ë¸”í´ë¦­ ì¸ì‹ ì‹œê°„ ê°„ê²©
 
+    private Vector3 initialCameraPosition;
     private void Start()
     {
-        targetPosition = cinemachineCamera.transform.position; // virtualCamera·Î ÃÊ±âÈ­
+        targetPosition = cinemachineCamera.transform.position; // virtualCameraë¡œ ì´ˆê¸°í™”
         if (cinemachineCamera == null)
         {
             Debug.LogError("CinemachineVirtualCamera is not assigned!");
         }
+
+        initialCameraPosition = cinemachineCamera.transform.position;
     }
 
     private void Update()
@@ -31,11 +34,21 @@ public class CameraManager : Singleton<CameraManager>
         HandleMouseMovement();
         HandleDoubleClick();
         SmoothMoveToTarget();
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            ResetCameraPosition();
+        }
+    }
+
+    private void ResetCameraPosition()
+    {
+        MoveCameraTo(initialCameraPosition);
     }
 
     private void HandleMouseMovement()
     {
-        if (isMovingToTarget || !Application.isFocused) return; // Ã¢ÀÌ ºñÈ°¼ºÈ­µÇ¾úÀ¸¸é ÀÌµ¿ X
+        if (isMovingToTarget || !Application.isFocused) return; // ì°½ì´ ë¹„í™œì„±í™”ë˜ì—ˆìœ¼ë©´ ì´ë™ X
 
         Vector3 moveDirection = Vector3.zero;
         Vector3 mousePos = Input.mousePosition;
@@ -73,8 +86,8 @@ public class CameraManager : Singleton<CameraManager>
                         if (playerCharacter != null)
                         {
                             GameManager.Instance.OnPlayerCharacterSelected(playerCharacter);
-                            MoveCameraTo(playerCharacter.transform.position); // Å¸°Ù À§Ä¡·Î Ä«¸Ş¶ó ÀÌµ¿
-                            cinemachineCamera.Follow = playerCharacter.transform; // Å¸°ÙÀ» µû¶ó°¡µµ·Ï ¼³Á¤
+                            MoveCameraTo(playerCharacter.transform.position); // íƒ€ê²Ÿ ìœ„ì¹˜ë¡œ ì¹´ë©”ë¼ ì´ë™
+                            cinemachineCamera.Follow = playerCharacter.transform; // íƒ€ê²Ÿì„ ë”°ë¼ê°€ë„ë¡ ì„¤ì •
                         }
                     }
                 }
@@ -86,10 +99,10 @@ public class CameraManager : Singleton<CameraManager>
 
     private void MoveCameraTo(Vector3 position)
     {
-        // Å¸°ÙÀÇ ¿ùµå ÁÂÇ¥¿¡¼­ Ä«¸Ş¶óÀÇ »õ·Î¿î x À§Ä¡¸¦ °è»ê
+        // íƒ€ê²Ÿì˜ ì›”ë“œ ì¢Œí‘œì—ì„œ ì¹´ë©”ë¼ì˜ ìƒˆë¡œìš´ x ìœ„ì¹˜ë¥¼ ê³„ì‚°
         Vector3 newPosition = new Vector3(position.x + 4.5f, cinemachineCamera.transform.position.y, position.z);
 
-        // »õ·Î¿î À§Ä¡¸¦ targetPosition¿¡ ÇÒ´ç
+        // ìƒˆë¡œìš´ ìœ„ì¹˜ë¥¼ targetPositionì— í• ë‹¹
         targetPosition = newPosition;
 
         isMovingToTarget = true;
@@ -101,14 +114,14 @@ public class CameraManager : Singleton<CameraManager>
     {
         if (!isMovingToTarget) return;
 
-        // Ä«¸Ş¶ó°¡ µü ÁöÁ¤µÈ targetPositionÀ¸·Î ÀÌµ¿ÇÏµµ·Ï ÇÔ
+        // ì¹´ë©”ë¼ê°€ ë”± ì§€ì •ëœ targetPositionìœ¼ë¡œ ì´ë™í•˜ë„ë¡ í•¨
         cinemachineCamera.transform.position = Vector3.Lerp(cinemachineCamera.transform.position, targetPosition, moveSpeed * Time.deltaTime);
 
-        // ¸¸¾à ¸ñÇ¥ À§Ä¡¿¡ µµ´ŞÇÏ¸é ÀÌµ¿À» ¸ØÃßµµ·Ï ¼³Á¤
+        // ë§Œì•½ ëª©í‘œ ìœ„ì¹˜ì— ë„ë‹¬í•˜ë©´ ì´ë™ì„ ë©ˆì¶”ë„ë¡ ì„¤ì •
         if (Vector3.Distance(cinemachineCamera.transform.position, targetPosition) < 0.1f)
         {
             isMovingToTarget = false;
-            cinemachineCamera.transform.position = targetPosition; // Á¤È®È÷ targetPosition¿¡ µµ´Ş
+            cinemachineCamera.transform.position = targetPosition; // ì •í™•íˆ targetPositionì— ë„ë‹¬
         }
     }
 

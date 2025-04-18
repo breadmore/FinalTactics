@@ -74,7 +74,7 @@ public class GameManager : NetworkSingleton<GameManager>
         {
             SetState(GameState.GameStarted, () => SelectedGridTile = gridTile);
             ActionPreviewManager.Instance.ClearHighlights();
-            InGameUIManager.Instance.ActionSlot.SetActive(false);
+            InGameUIManager.Instance.CloseAllSlot();
         }
         else if(CurrentState == GameState.WaitingForSpawnBall)
         {
@@ -94,11 +94,13 @@ public class GameManager : NetworkSingleton<GameManager>
         {
             if (actionData.action == ActionType.Shoot)
             {
-                //SelectedShootOption = ShootOption.Cancel;
                 InGameUIManager.Instance.ToggleOption();
             }
+            else
+            {
+                SetState(GameState.ActionSelected, () => SelectedActionData = actionData.id);
+            }
 
-            SetState(GameState.ActionSelected, () => SelectedActionData = actionData.id);
             
         }
 
@@ -111,7 +113,7 @@ public class GameManager : NetworkSingleton<GameManager>
     public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
     {
         ActionPreviewManager.Instance.ClearHighlights();
-        //ClearAllSelected();
+        
         if (CurrentState == GameState.GameStarted)
         {
             if (playerCharacter.OwnerClientId == thisPlayerBrain.OwnerClientId)
@@ -121,10 +123,8 @@ public class GameManager : NetworkSingleton<GameManager>
             }
             else
             {
-                InGameUIManager.Instance.ActionSlot.SetActive(false);
+                InGameUIManager.Instance.CloseAllSlot();
             }
-
-
         }
 
         // Test State
@@ -147,7 +147,25 @@ public class GameManager : NetworkSingleton<GameManager>
     public void OnShootOption(ShootOption shootOption)
     {
         SelectedShootOption = shootOption;
-        InGameUIManager.Instance.ToggleOption();
+        switch (shootOption)
+        {
+            case ShootOption.Cancel:
+                InGameUIManager.Instance.ToggleOption();
+                break;
+            case ShootOption.Charge:
+                InGameUIManager.Instance.CloseAllSlot();
+
+                SetState(GameState.GameStarted);
+                TurnManager.Instance.SubmitActionServerRpc(SelectedPlayerCharacter.NetworkObjectId,
+                    2,  // 슛 아이디
+                    SelectedPlayerCharacter.GridPosition);
+                break;
+            case ShootOption.Shoot:
+                InGameUIManager.Instance.ToggleOption();
+                SetState(GameState.ActionSelected, () => SelectedActionData = 2); // 슛 아이디
+                break;
+        }
+
     }
 
     public void ClearAllSelected()
@@ -197,6 +215,11 @@ public class GameManager : NetworkSingleton<GameManager>
             else
                 teamB.Players.Add(playerData);
         }
+    }
+
+    public void InitGame()
+    {
+        InGameUIManager.Instance.CharacterSlot.SetActive(true);
     }
 
     public void StartGame()
@@ -338,9 +361,20 @@ public class GameManager : NetworkSingleton<GameManager>
         // 클라이언트에게 골 연출 보여주기
         NotifyGoalClientRpc(teamName);
         SyncScoreClientRpc(teamA.score, teamB.score);
+
         // 리셋 루틴 시작 (서버만 실행)
         StartCoroutine(ResetAfterGoal());
+
+        InitGame();
     }
+
+    private void ReturnAllCharacter()
+    {
+        PlayerCharacterNetworkPool.Instance.ReturnAllCharacter();
+
+        Debug.Log("All characters returned to pool.");
+    }
+
 
     [ClientRpc]
     private void NotifyGoalClientRpc(TeamName scoringTeam)
@@ -354,9 +388,18 @@ public class GameManager : NetworkSingleton<GameManager>
 
         SetState(GameState.WaitingForReset);
 
+        ReturnAllCharacter();
+        BallManager.Instance.DespawnBall();
         ResetAllPlayersReadyState();  // 준비 상태 초기화
+        ResetGameClientRpc();
     }
-
+    [ClientRpc]
+    private void ResetGameClientRpc()
+    {
+        // 클라이언트에서 상태 초기화 및 게임 준비 UI 띄우기
+        SetState(GameState.WaitingForPlayerReady);
+        InitGame();
+    }
 
     [ClientRpc]
     private void SyncScoreClientRpc(int teamAScore, int teamBScore)
@@ -393,7 +436,7 @@ public class GameManager : NetworkSingleton<GameManager>
     [Command]
     public void ShowPlayerStat()
     {
-        Debug.Log(SelectedPlayerCharacter.CharacterData.characterStat.stamina.ToString());
+        Debug.Log(SelectedPlayerCharacter.CharacterStat.stamina.ToString());
     }
 
     [Command]

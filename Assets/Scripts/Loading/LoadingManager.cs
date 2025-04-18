@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine.UI;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Lobbies;
+using DG.Tweening;
 
 public class LoadingManager : DontDestroySingleton<LoadingManager>
 {
@@ -36,46 +37,36 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         canvas.gameObject.SetActive(true);
         loadingBar.value = 0;
         loadingBar.maxValue = 1;
-        // 로딩 진행 텍스트 업데이트
         loadingText.text = "Loading...";
 
-        // 비동기 씬 로딩 시작
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("InGame");
+        asyncLoad.allowSceneActivation = false;
+        float targetProgress = 0f;
 
-        // 씬이 로드되었지만 자동으로 활성화되지 않도록 설정
-        asyncLoad.allowSceneActivation = false;  // 씬 활성화 지연
-        float targetProgress = loadingBar.value;
-
-        // 로딩 중 진행 상태를 업데이트
-        while (asyncLoad.progress < 0.9f)  // progress가 0.9 미만일 때까지 대기
+        while (asyncLoad.progress < 0.9f)
         {
-            // 슬라이더의 값 업데이트
-            loadingBar.value = asyncLoad.progress;
+            targetProgress = asyncLoad.progress;
+            loadingBar.DOValue(targetProgress, 0.2f); // DOTween을 사용해 부드럽게 변화
 
-            // 프레임마다 기다리며 계속 진행
             await Task.Yield();
         }
 
-        // 슬라이더의 값 업데이트
-        loadingBar.value = asyncLoad.progress;
-
-        // 로딩이 90% 이상일 때, 초기화 작업 수행
-        loadingText.text = "Initializing...";
+        loadingBar.DOValue(asyncLoad.progress, 0.2f); // 마지막 0.9까지 반영
+        loadingText.text = "Loading player data ....";
         await InitializeMainScene();
 
-        // 마우스 클릭을 기다리며, 클릭이 있으면 씬을 전환
-        while (!Input.GetMouseButtonDown(0))  // 클릭 대기
+        loadingText.text = "Press Any Key";
+
+        while (!Input.GetMouseButtonDown(0))
         {
-            await Task.Yield();  // 계속 기다림 (매 프레임마다 확인)
+            await Task.Yield();
         }
+
         canvas.gameObject.SetActive(false);
-
-
         isLoading = false;
-        asyncLoad.allowSceneActivation = true;  // 씬 활성화
-
-
+        asyncLoad.allowSceneActivation = true;
     }
+
 
     private async Task InitializeMainScene()
     {
@@ -88,7 +79,7 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         await RelayManager.Instance.WaitForRelayConnection();
 
         Debug.Log("씬이 활성화됨! UI를 활성화합니다.");
-        InGameUIManager.Instance.CharacterSlot.SetActive(true);
+        GameManager.Instance.InitGame();
     }
 
 

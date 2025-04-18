@@ -4,51 +4,85 @@ using UnityEngine.Splines;
 
 public class PlayerCharacter : NetworkBehaviour
 {
-    public CharacterData CharacterData { get; private set; }
-    public TeamName Team { get; private set; }
-    public Vector2Int GridPosition { get; private set; }
+
+    private NetworkVariable<int> characterId = new NetworkVariable<int>();
+    private NetworkVariable<int> stamina = new NetworkVariable<int>();
+    public int Stamina => stamina.Value;
+    
+    public CharacterStat CharacterStat { get; private set; }
+
+    private NetworkVariable<TeamName> team = new NetworkVariable<TeamName>();
+    public TeamName Team => team.Value;
+
+    private NetworkVariable<Vector2Int> gridPosition = new NetworkVariable<Vector2Int>();
+    public Vector2Int GridPosition => gridPosition.Value;
     public int ShootChargeCount { get; private set; } = 0;
 
     public override void OnNetworkSpawn()
     {
-        if (NetworkManager.Singleton?.IsServer == true)
-        {
-            ObjectPool.Instance?.RegisterActiveCharacter(this);
-        }
+        base.OnNetworkSpawn();
+
+        characterId.OnValueChanged += OnCharacterIdChanged;
+        SetCharacterStat();
+
+
+
+        if (IsServer) gridPosition.OnValueChanged += OnGridPositionChanged;
+
+        
     }
 
     public override void OnNetworkDespawn()
     {
-        if (NetworkManager.Singleton?.IsServer == true)
+        base.OnNetworkDespawn();
+
+        characterId.OnValueChanged -= OnCharacterIdChanged;
+
+        if (IsServer) gridPosition.OnValueChanged -= OnGridPositionChanged; // 이벤트 구독 해제
+        
+    }
+
+    public void Initialize(int characterId,TeamName team, Vector2Int gridPosition)
+    {
+        // 서버에서만 gridPosition 설정하도록 수정
+        if (IsServer)
         {
-            ObjectPool.Instance?.UnregisterActiveCharacter(this);
+            Debug.Log("Id : " + characterId);
+            this.characterId.Value = characterId;
+            this.team.Value = team;
+            this.gridPosition.Value = gridPosition;
         }
+
+
     }
 
-    public void InitData(CharacterData characterData)
-    {
-        CharacterData = characterData;
-    }
-    public void Initialize(TeamName team, Vector2Int gridPosition)
-    {
-        Team = team;
-        GridPosition = gridPosition;
-    }
-
-    public void MoveToGridTile(GridTile tile)
+    public void MoveToGridTile(GridTile targetTile)
     {
         GridTile currentTile = GridManager.Instance.GetGridTileAtPosition(GridPosition);
+
+        int lostStamina = GridUtils.GetDistance(currentTile.gridPosition, targetTile.gridPosition);
+        Debug.Log("Lost Stamina : " + lostStamina);
         currentTile.ClearOccupied();
 
-        GridTile newTile = GridManager.Instance.GetGridTileAtPosition(tile.gridPosition);
+        targetTile.SetOccupied(this);
+
+
+        stamina.Value -= lostStamina;
+
+        gridPosition.Value = targetTile.gridPosition;
+        
+    }
+    private void OnGridPositionChanged(Vector2Int oldPos, Vector2Int newPos)
+    {
+
+        GridTile oldTile = GridManager.Instance.GetGridTileAtPosition(oldPos);
+        oldTile.ClearOccupied();
+
+        GridTile newTile = GridManager.Instance.GetGridTileAtPosition(newPos);
         newTile.SetOccupied(this);
 
-        GridPosition = tile.gridPosition;
         transform.position = GridManager.Instance.GetNearestGridCenter(newTile.transform.position);
-
-        SyncGridTileClientRpc(currentTile.gridPosition, tile.gridPosition);
     }
-
 
     // 서버 호출용
     [ServerRpc]
@@ -89,4 +123,25 @@ public class PlayerCharacter : NetworkBehaviour
         ResetShootCharge();
     }
 
+    private void OnCharacterIdChanged(int oldId, int newId)
+    {
+        SetCharacterStat();
+
+    }
+
+    public void SetCharacterStat()
+    {
+        CharacterStat = LoadDataManager.Instance.characterDataReader.GetCharacterDataById(characterId.Value).characterStat;
+        stamina.Value = CharacterStat.stamina;
+    }
+
+    public int GetCharacterId()
+    {
+        return characterId.Value;
+    }
+
+    public void OnActionFailed()
+    {
+        Debug.Log("Character ["+ characterId + "] Action Failed");
+    }
 }

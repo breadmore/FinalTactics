@@ -6,13 +6,13 @@ public class ActionData
 {
     public int id;
     public ActionType action;
-    public int type;
+    public ActionCategory category;
 
-    public ActionData(int id, ActionType action, int type)
+    public ActionData(int id, ActionType action, ActionCategory category)
     {
         this.id = id;
         this.action = action;
-        this.type = type;
+        this.category = category;
     }
 }
 

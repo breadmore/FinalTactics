@@ -4,7 +4,11 @@ using UnityEngine;
 public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
     private int characterCount = 0;
-
+    public CharacterSlotChild selectedChild;
+    private void OnEnable()
+    {
+        characterCount = 0;
+    }
     private void Start()
     {
         CreateChild(8);
@@ -29,7 +33,7 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
                         // 배치 불가능할 경우 return
                         if (!GameManager.Instance.SelectedGridTile.CanPlaceCharacter()) return;
                         GameManager.Instance.thisPlayerBrain.SpawnPlayer(GameManager.Instance.SelectedGridTile);
-                        
+                        selectedChild.gameObject.SetActive(false);
                         // spawn 성공시 아래 작업
                         characterCount++;
 

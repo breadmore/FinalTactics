@@ -19,28 +19,28 @@ MonoBehaviour:
   DataList:
   - id: 0
     action: 0
-    type: 0
+    category: 0
   - id: 1
     action: 1
-    type: 0
+    category: 0
   - id: 2
     action: 2
-    type: 1
+    category: 1
   - id: 3
     action: 3
-    type: 1
+    category: 1
   - id: 4
     action: 4
-    type: 1
+    category: 1
   - id: 5
     action: 5
-    type: 2
+    category: 2
   - id: 6
     action: 6
-    type: 2
+    category: 2
   - id: 7
     action: 7
-    type: 3
+    category: 3
   - id: 8
     action: 8
-    type: 3
+    category: 3

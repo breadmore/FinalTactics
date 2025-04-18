@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class BallManager : NetworkSingleton<BallManager>
 {
     public GameObject ballObjectPrefab;
-    public GameObject spawnedBall;
+    public NetworkObject spawnedBall;
     public Button spawnBallButton;
     public GridTile CurrentTile { get; private set; }
 
@@ -18,6 +18,7 @@ public class BallManager : NetworkSingleton<BallManager>
     private void Start()
     {
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
+
     }
 
     private void Update()
@@ -43,13 +44,22 @@ public class BallManager : NetworkSingleton<BallManager>
         GameManager.Instance.OnWaitingForSpawnBall();
     }
 
+    public void PreSpawnBall()
+    {
+        Debug.Log("Server");
+        GameObject obj = Instantiate(ballObjectPrefab);
+        spawnedBall = obj.GetComponent<NetworkObject>();
+        spawnedBall.gameObject.SetActive(false);
+    }
+
     public void SpawnBall(GridTile gridTile)
     {
         if (!IsServer) return;
 
         Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
-        spawnedBall = Instantiate(ballObjectPrefab, tilePosition, Quaternion.identity);
-        spawnedBall.GetComponent<NetworkObject>().Spawn(true);
+        spawnedBall.gameObject.SetActive(true);
+        spawnedBall.Spawn(true);
+        spawnedBall.transform.position = tilePosition;
 
         CurrentTile = gridTile;
 
@@ -57,6 +67,13 @@ public class BallManager : NetworkSingleton<BallManager>
         {
             SetBallOwner(gridTile.occupyingCharacter.NetworkObjectId);
         }
+    }
+
+    public void DespawnBall() 
+    {
+        if (!IsServer) return;
+        spawnedBall.Despawn(false);
+        spawnedBall.gameObject.SetActive(false);
     }
 
     // 서버 전용 메서드: 공 소유자 설정
@@ -79,6 +96,18 @@ public class BallManager : NetworkSingleton<BallManager>
         {
             SetBallOwner(targetTile.occupyingCharacter.NetworkObjectId);
         }
+    }
+
+    public void DribbleBall(GridTile targetTile, PlayerCharacter dribbler)
+    {
+        if (!IsServer) return;
+
+        if (dribbler.NetworkObjectId != BallOwnerNetworkId.Value)
+        {
+            return;
+        }
+
+        MoveBall(targetTile);
     }
 
     // 서버 전용 메서드: 패스

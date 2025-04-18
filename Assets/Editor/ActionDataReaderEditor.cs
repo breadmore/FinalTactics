@@ -22,12 +22,12 @@ public class ActionDataReaderEditor : Editor
 
         if (GUILayout.Button("데이터 읽기(API 호출)"))
         {
-            UpdateStats(UpdateMethodOne);
+            UpdateActions(UpdateMethodOne);
             data.DataList.Clear();
         }
     }
 
-    void UpdateStats(UnityAction<GstuSpreadSheet> callback, bool mergedCells = false)
+    void UpdateActions(UnityAction<GstuSpreadSheet> callback, bool mergedCells = false)
     {
         SpreadsheetManager.Read(new GSTU_Search(data.associatedSheet, data.associatedWorksheet), callback, mergedCells);
     }
@@ -38,7 +38,7 @@ public class ActionDataReaderEditor : Editor
         for (int i = data.START_ROW_LENGTH; i <= data.END_ROW_LENGTH; ++i)
         {
             // 각 행 데이터를 UpdateStats에 전달
-            data.UpdateStats(ss.rows[i], i);
+            data.UpdateAction(ss.rows[i], i);
         }
 
         EditorUtility.SetDirty(target);  // 편집 내용을 저장하여 반영

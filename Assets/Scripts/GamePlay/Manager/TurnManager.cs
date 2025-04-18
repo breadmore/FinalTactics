@@ -65,8 +65,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         if (!isGameActive) return;
 
         GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePos);
-        int actionType = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).type;
-        ActionCategory category = CategorizeAction(actionType);
+        ActionCategory actionCategory = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).category;
 
         PlayerAction newAction = new PlayerAction
         {
@@ -75,7 +74,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
             targetTile = targetTile
         };
 
-        switch (category)
+        switch (actionCategory)
         {
             case ActionCategory.Defense:
                 defenseActions.Add(newAction);
@@ -88,23 +87,9 @@ public class TurnManager : NetworkSingleton<TurnManager>
                 break;
         }
 
-        Debug.Log($"Player {playerId} submitted {category} action: {actionId} at {targetTile.gridPosition}");
+        Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} at {targetTile.gridPosition}");
     }
 
-    private ActionCategory CategorizeAction(int actionType)
-    {
-        switch (actionType)
-        {
-            case 2:
-                return ActionCategory.Defense;
-
-            case 1:
-                return ActionCategory.Offense;
-
-            default:
-                return ActionCategory.Common;
-        }
-    }
 
     [ClientRpc]
     private void UpdateClientStateClientRpc(ulong playerId, int actionId, Vector2Int position)
@@ -127,26 +112,67 @@ public class TurnManager : NetworkSingleton<TurnManager>
 
     private void ExecuteActionList(List<PlayerAction> actionList)
     {
+        actionList.Sort((a, b) =>
+        {
+            var charA = GridManager.Instance.GetCharacterByNetworkId(a.playerId);
+            var charB = GridManager.Instance.GetCharacterByNetworkId(b.playerId);
+
+            int result = charB.CharacterStat.speed.CompareTo(charA.CharacterStat.speed);
+            if (result == 0)
+                result = UnityEngine.Random.Range(-1, 2);
+            return result;
+        });
+
+        HashSet<Vector2Int> occupiedPositions = new HashSet<Vector2Int>();
+
         foreach (var action in actionList)
         {
-            PlayerCharacter player = GridManager.Instance.GetCharacterByNetworkId(action.playerId);
-            IActionHandler handler = ActionHandlerFactory.CreateHandler((ActionType)action.actionId);
-            Debug.Log(player.name);
-            Debug.Log(action.actionId);
-            handler.ExecuteAction(player, action.targetTile);
+            PlayerCharacter character = GridManager.Instance.GetCharacterByNetworkId(action.playerId);
+            Vector2Int targetPos = action.targetTile.gridPosition;
+            ActionType actionType = (ActionType)action.actionId;
+
+            // 액션 핸들러 생성
+            IActionHandler handler = ActionHandlerFactory.CreateHandler(actionType);
+
+            // 이동형 액션인지 확인
+            bool isMovementAction = actionType == ActionType.Move || actionType == ActionType.Dribble;
+
+            // 이동형이고 타일이 이미 점유되어 있다면 실패 처리
+            if (isMovementAction && occupiedPositions.Contains(targetPos))
+            {
+                Debug.Log($"[TurnManager] {actionType} 실패: Player {action.playerId} - {targetPos}는 이미 점유됨.");
+                character.OnActionFailed();
+                continue;
+            }
+
+            handler.ExecuteAction(character, action.targetTile);
+
+            if (isMovementAction)
+            {
+                occupiedPositions.Add(targetPos);
+            }
         }
     }
+
 
     private IEnumerator EndTurn()
     {
         yield return new WaitForSeconds(1f);
         OnTurnEnd?.Invoke(currentTurn);
 
+        NotifyTurnEndClientRpc(currentTurn);
         if (isGameActive)
         {
             currentTurn++;
             StartTurn();
         }
+    }
+
+    [ClientRpc]
+    private void NotifyTurnEndClientRpc(int turnNumber)
+    {
+        Debug.Log($"[Client] Turn {turnNumber} ended.");
+        GameManager.Instance.SetState(GameState.GameStarted);  // 또는 다음 상태로
     }
 
     [Command]
@@ -168,5 +194,12 @@ public class TurnManager : NetworkSingleton<TurnManager>
         PrintActionList("Offense", offenseActions);
 
         Debug.Log("=====================================");
+    }
+
+
+    [Command]
+    public void ShowCurrentTurn()
+    {
+        Debug.Log(currentTurn);
     }
 }

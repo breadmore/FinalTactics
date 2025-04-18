@@ -19,6 +19,7 @@ public class InGameUIManager : Singleton<InGameUIManager>
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        CloseAllSlot();
         readyButton.onClick.AddListener(OnReadyButtonClick);
     }
 
@@ -27,6 +28,9 @@ public class InGameUIManager : Singleton<InGameUIManager>
     {
         
     }
+
+
+
 
     public void OnReadyButtonClick()
     {
@@ -61,5 +65,13 @@ public class InGameUIManager : Singleton<InGameUIManager>
     {
         teamAScoreText.text = teamAScore.ToString();
         teamBScoreText.text = teamBScore.ToString();
+    }
+
+    public void CloseAllSlot()
+    {
+        isOption = false;
+        CharacterSlot.SetActive(false);
+        ActionSlot.SetActive(false);
+        ShootOptionSlot.SetActive(false);
     }
 }

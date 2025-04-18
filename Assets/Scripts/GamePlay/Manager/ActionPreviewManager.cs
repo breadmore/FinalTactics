@@ -15,7 +15,6 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
 
         Debug.Log("HightLight for action");
 
-        // 1. 액션 핸들러 생성
         var handler = ActionHandlerFactory.CreateHandler(actionType);
         if (handler == null)
         {
@@ -23,7 +22,6 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
             return;
         }
 
-        // 3. 모든 타일 중 유효한 것만 체크
         foreach (var tile in GridManager.Instance.GetAllGridTiles())
         {
             if (handler.CanExecute(player, tile))

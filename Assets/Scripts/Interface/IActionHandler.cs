@@ -29,10 +29,10 @@ public class MoveActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (targetTile.isOccupied)
+        if (targetTile.IsOccupied)
             return false;
 
-        int moveRange = player.CharacterData.characterStat.speed;
+        int moveRange = Mathf.Min(player.CharacterStat.speed, player.Stamina);
         int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
 
         return distance <= moveRange;
@@ -55,7 +55,7 @@ public class PassActionHandler : IActionHandler
     {
         if (!BallManager.Instance.IsBallOwnedBy(player)) return false;
 
-        int moveRange = player.CharacterData.characterStat.pass;
+        int moveRange = player.CharacterStat.pass;
         int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
 
         return distance <= moveRange;
@@ -76,8 +76,7 @@ public class DribbleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (!BallManager.Instance.IsBallOwnedBy(player)) return false;
-        if (targetTile.isOccupied)
+        if (targetTile.IsOccupied)
         {
             // 사람 있을경우
             return false;
@@ -96,18 +95,19 @@ public class DribbleActionHandler : IActionHandler
             return;
         }
         float randomValue = Random.Range(0f, 1f);
+
         if (randomValue < targetTile.BlockProbability)
         {
-            Debug.Log($"{player.CharacterData.id}의 드리블이 차단되었습니다!");
+            Debug.Log($"{player.GetCharacterId()}의 드리블이 블록으로 차단되었습니다!");
             // 실패 처리 로직 (볼 뺏김 or 제자리 유지)
-            // 예시: 공만 떨어뜨리기
             player.MoveToGridTile(targetTile);
             return;
         }
+        
 
         // 드리블 성공 시
         player.MoveToGridTile(targetTile);
-        BallManager.Instance.MoveBall(targetTile);
+        BallManager.Instance.DribbleBall(targetTile,player);
     }
 }
 
@@ -165,16 +165,14 @@ public class TackleActionHandler : IActionHandler
 
             // 위치 변경
             player.MoveToGridTile(targetTile);
-            opponent.MoveToGridTile(playerTile);
-
             // 공 탈취 + 소유권 이동
             BallManager.Instance.StealBall(player);
-            Debug.Log($"{player.CharacterData.id} 성공적으로 태클하여 {opponent.CharacterData.id}에게서 공을 빼앗았습니다!");
+            Debug.Log($"{player.GetCharacterId()} 성공적으로 태클하여 {opponent.GetCharacterId()}에게서 공을 빼앗았습니다!");
         }
         else
         {
             // 실패 시: 경고 메시지 or 패널티
-            Debug.Log($"{player.CharacterData.id}의 태클이 실패했습니다!");
+            Debug.Log($"{player.GetCharacterId()}의 태클이 실패했습니다!");
             // 예: 이동 불가 상태로 만들거나 경고 등
         }
     }
@@ -257,7 +255,7 @@ public class InterceptActionHandler : IActionHandler
         }
 
         BallManager.Instance.StealBall(player);
-        Debug.Log($"{player.CharacterData.id} intercepted the ball at {targetTile.gridPosition}.");
+        Debug.Log($"{player.GetCharacterId()} intercepted the ball at {targetTile.gridPosition}.");
     }
 }
 public class SaveActionHandler : IActionHandler
@@ -277,6 +275,6 @@ public class SaveActionHandler : IActionHandler
             return;
         }
 
-        Debug.Log($"{player.CharacterData.id} saved the shot at {targetTile.gridPosition}!");
+        Debug.Log($"{player.GetCharacterId()} saved the shot at {targetTile.gridPosition}!");
     }
 }

@@ -2,19 +2,19 @@
 using Unity.Netcode;
 using UnityEngine;
 
-public class GridTile : MonoBehaviour
+public class GridTile : NetworkBehaviour
 {
     public TileType Type { get; private set; }
     public Vector2Int gridPosition { get; private set; }
     public PlayerCharacter occupyingCharacter { get; private set; }
-    public bool isOccupied { get; private set; } = false;
-
+    private NetworkVariable<bool> isOccupied = new NetworkVariable<bool>();
+    public bool IsOccupied => isOccupied.Value;
     public float BlockProbability = 0;
     //public float BlockProbability { get; private set; } = 0;
     private bool isBlocking = false;
     public bool CanPlaceCharacter()
     {
-        if (isOccupied) return false;
+        if (IsOccupied) return false;
         if (Type != TileType.SpawnZone) return false;
 
         return true;
@@ -31,8 +31,9 @@ public class GridTile : MonoBehaviour
 
     public void SetOccupied(PlayerCharacter character)
     {
-        isOccupied = true;
         occupyingCharacter = character;
+        if(occupyingCharacter != null)
+        isOccupied.Value = true;
     }
 
     public void SetTileType(TileType type)
@@ -47,8 +48,8 @@ public class GridTile : MonoBehaviour
 
     public void ClearOccupied()
     {
-        isOccupied = false;
         occupyingCharacter = null;
+        isOccupied.Value = false;
     }
 
     public void BlockProbabilityDecision(float blockProbability)

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,6 +41,7 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
         {
             GameManager.Instance.OnActionSelected(actionData);
 
+            Debug.Log(GameManager.Instance.SelectedPlayerCharacter.GridPosition);
             ActionPreviewManager.Instance.HighlightTilesForAction(actionData.action, GameManager.Instance.SelectedPlayerCharacter);
             
             
@@ -56,5 +58,6 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
     {
         thisImage.sprite = sprite;
     }
-
 }
+
+
