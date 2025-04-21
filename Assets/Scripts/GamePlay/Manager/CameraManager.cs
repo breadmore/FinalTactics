@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Cinemachine;
+using Unity.Services.Matchmaker.Models;
 
 public class CameraManager : Singleton<CameraManager>
 {
@@ -10,21 +11,21 @@ public class CameraManager : Singleton<CameraManager>
     public float smoothTime = 0.2f; // 카메라 이동 부드러움
     private Vector3 velocity = Vector3.zero;
     private Vector3 targetPosition;
+    public Vector3 initialCameraPosition { get; private set; }
     private bool isMovingToTarget = false;
 
     private float lastClickTime = 0f;
     private float doubleClickThreshold = 0.3f; // 더블클릭 인식 시간 간격
 
-    private Vector3 initialCameraPosition;
     private void Start()
     {
-        targetPosition = cinemachineCamera.transform.position; // virtualCamera로 초기화
+        //targetPosition = cinemachineCamera.transform.position; // virtualCamera로 초기화
         if (cinemachineCamera == null)
         {
             Debug.LogError("CinemachineVirtualCamera is not assigned!");
         }
 
-        initialCameraPosition = cinemachineCamera.transform.position;
+        Debug.Log(GameManager.Instance.thisPlayerBrain.GetMyTeam());
     }
 
     private void Update()
@@ -37,13 +38,31 @@ public class CameraManager : Singleton<CameraManager>
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            ResetCameraPosition();
+            ResetCameraPosition(GameManager.Instance.thisPlayerBrain.GetMyTeam());
+            if (InGameUIManager.Instance.gameDataPanel.IsVisible())
+            {
+                InGameUIManager.Instance.gameDataPanel.Close();
+            }
         }
     }
 
-    private void ResetCameraPosition()
+    public void SetInitialCameraPosition(TeamName team)
     {
-        MoveCameraTo(initialCameraPosition);
+        if (team == TeamName.TeamA)
+        {
+            initialCameraPosition = new Vector3(10, 18, 0);
+        }
+        else
+        {
+            cinemachineCamera.transform.rotation = Quaternion.Euler(70f, 90f, 0f);
+            initialCameraPosition = new Vector3(-10, 18, 0);
+        }
+            MoveCameraTo(initialCameraPosition);
+    }
+
+    private void ResetCameraPosition(TeamName team)
+    {
+            MoveCameraTo(initialCameraPosition);
     }
 
     private void HandleMouseMovement()
@@ -88,6 +107,7 @@ public class CameraManager : Singleton<CameraManager>
                             GameManager.Instance.OnPlayerCharacterSelected(playerCharacter);
                             MoveCameraTo(playerCharacter.transform.position); // 타겟 위치로 카메라 이동
                             cinemachineCamera.Follow = playerCharacter.transform; // 타겟을 따라가도록 설정
+                            InGameUIManager.Instance.gameDataPanel.OpenWithCharacterData(playerCharacter);
                         }
                     }
                 }

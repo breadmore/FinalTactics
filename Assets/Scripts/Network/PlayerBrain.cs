@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Cinemachine;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -18,6 +19,7 @@ public class PlayerBrain : NetworkBehaviour
         if (IsOwner)
         {
             GameManager.Instance.thisPlayerBrain = this;
+
         }
     }
 
@@ -29,7 +31,13 @@ public class PlayerBrain : NetworkBehaviour
     private void Start()
     {
         if (GameManager.Instance.PlayerDataDict.TryGetValue(AuthenticationService.Instance.PlayerId, out thisPlayerData))
+        {
             Debug.Log($"Player {thisPlayerData.player.Data["PlayerName"].Value} assigned to team {thisPlayerData.team}");
+
+            CameraManager.Instance.SetInitialCameraPosition(thisPlayerData.team);
+        }
+        
+    
     }
 
     public void SpawnPlayer(GridTile gridTile)
@@ -125,9 +133,16 @@ public class PlayerBrain : NetworkBehaviour
         }
     }
 
+    public TeamName GetMyTeam()
+    {
+        return thisPlayerData.team;
+    }
+
     [Command]
     public void ShowTeam()
     {
         Debug.Log(thisPlayerData.team.ToString());
     }
+
+   
 }

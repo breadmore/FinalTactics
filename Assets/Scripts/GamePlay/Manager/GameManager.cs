@@ -31,6 +31,14 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public event Action<GameState> OnGameStateChanged;
 
+    public void SetTeamCamera()
+    {
+        if (thisPlayerBrain.GetMyTeam() == TeamName.TeamB)
+        {
+            CameraManager.Instance.cinemachineCamera.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+        }
+    }
+
     public void SetState(GameState newState, Action callback = null)
     {
         CurrentState = newState;
@@ -343,9 +351,11 @@ public class GameManager : NetworkSingleton<GameManager>
         {
             teamA.score++;
             Debug.Log("Team A Goal!!!!!");
+
             if (teamA.score >= 3)
             {
                 // A팀 승리
+                InGameUIManager.Instance.resultPanel.ShowResult();
             }
         }
         else
@@ -355,6 +365,7 @@ public class GameManager : NetworkSingleton<GameManager>
             if (teamB.score >= 3)
             {
                 // B팀 승리
+                InGameUIManager.Instance.resultPanel.ShowResult();
             }
         }
 

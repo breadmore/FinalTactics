@@ -1,4 +1,5 @@
-﻿using Unity.Netcode;
+﻿using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,10 +16,17 @@ public class BallManager : NetworkSingleton<BallManager>
         NetworkVariableWritePermission.Server
     );
 
+    //[HideInInspector]
+    public PlayerCharacter dribbler = null;
+
+
     private void Start()
     {
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
-
+        if (IsServer)
+        {
+            TurnManager.Instance.OnTurnEnd += TurnStartSetting;
+        }
     }
 
     private void Update()
@@ -35,6 +43,11 @@ public class BallManager : NetworkSingleton<BallManager>
                 GameManager.Instance.OnGridTileSelected(tile);
                 SpawnBall(tile);
             }
+        }
+
+        if(dribbler != null)
+        {
+            spawnedBall.transform.position = dribbler.ballPosition.position;
         }
     }
 
@@ -65,22 +78,27 @@ public class BallManager : NetworkSingleton<BallManager>
 
         if (gridTile.occupyingCharacter != null)
         {
-            SetBallOwner(gridTile.occupyingCharacter.NetworkObjectId);
+            SetBallOwner(gridTile.occupyingCharacter);
         }
     }
 
     public void DespawnBall() 
     {
         if (!IsServer) return;
+        BallOwnerNetworkId.Value = 0;
+        CurrentTile = null;
+
         spawnedBall.Despawn(false);
         spawnedBall.gameObject.SetActive(false);
     }
 
     // 서버 전용 메서드: 공 소유자 설정
-    public void SetBallOwner(ulong playerNetworkId)
+    public void SetBallOwner(PlayerCharacter playerCharacter)
     {
-        if (!IsServer) return;
-        BallOwnerNetworkId.Value = playerNetworkId;
+        if (!IsServer || playerCharacter == null) return;
+
+        BallOwnerNetworkId.Value = playerCharacter.NetworkObjectId;
+        spawnedBall.transform.position = playerCharacter.ballPosition.position;
     }
 
     // 서버 전용 메서드: 공 이동
@@ -90,11 +108,11 @@ public class BallManager : NetworkSingleton<BallManager>
 
         CurrentTile = targetTile;
         BallOwnerNetworkId.Value = 0;  // 소유권 해제
-        spawnedBall.transform.position = GridManager.Instance.GetNearestGridCenter(targetTile.transform.position);
+        StartCoroutine(SmoothMoveCoroutine(GridManager.Instance.GetNearestGridCenter(targetTile.transform.position)));
 
         if (targetTile.occupyingCharacter != null)
         {
-            SetBallOwner(targetTile.occupyingCharacter.NetworkObjectId);
+            SetBallOwner(targetTile.occupyingCharacter);
         }
     }
 
@@ -107,7 +125,9 @@ public class BallManager : NetworkSingleton<BallManager>
             return;
         }
 
-        MoveBall(targetTile);
+        this.dribbler = dribbler;
+        SetBallOwner(dribbler);
+        CurrentTile = targetTile;
     }
 
     // 서버 전용 메서드: 패스
@@ -120,7 +140,10 @@ public class BallManager : NetworkSingleton<BallManager>
             return;
         }
 
+        passer.PlayAnimationPass();
+
         MoveBall(targetTile);
+
     }
 
     // 서버 전용 메서드: 탈취
@@ -128,8 +151,8 @@ public class BallManager : NetworkSingleton<BallManager>
     {
         if (!IsServer) return;
 
-        SetBallOwner(stealer.NetworkObjectId);
-        MoveBall(GridManager.Instance.GetGridTileAtPosition(stealer.GridPosition));
+        SetBallOwner(stealer);
+        //MoveBall(GridManager.Instance.GetGridTileAtPosition(stealer.GridPosition));
     }
 
     // 클라이언트 전용 확인 함수들 (읽기만 허용)
@@ -150,5 +173,30 @@ public class BallManager : NetworkSingleton<BallManager>
         // 볼 위치 중앙 초기화
 
         MoveBall(GridManager.Instance.GetGridTileAtPosition(gridPosition));
+    }
+
+    private IEnumerator SmoothMoveCoroutine(Vector3 targetPosition)
+    {
+        float duration = 0.8f; // 이동 시간
+        float elapsed = 0f;
+
+        Vector3 startPos = spawnedBall.transform.position;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            spawnedBall.transform.position = Vector3.Lerp(startPos, targetPosition, t);
+            yield return null;
+        }
+
+        spawnedBall.transform.position = targetPosition;
+    }
+
+    private void TurnStartSetting()
+    {
+        if(!IsServer) return;
+        SetBallOwner(CurrentTile.occupyingCharacter);
     }
 }

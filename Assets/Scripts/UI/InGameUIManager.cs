@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class InGameUIManager : Singleton<InGameUIManager>
 {
     public TextMeshProUGUI goalText;
+    public TextMeshProUGUI turnText;
 
     public TextMeshProUGUI teamAScoreText;
     public TextMeshProUGUI teamBScoreText;
@@ -14,6 +15,11 @@ public class InGameUIManager : Singleton<InGameUIManager>
     public GameObject CharacterSlot;
     public GameObject ActionSlot;
     public GameObject ShootOptionSlot;
+
+    [Header("패널 관리")]
+    public ResultPanel resultPanel;
+    public PausePanel pausePanel;
+    public GameDataPanel gameDataPanel;
 
     private bool isOption = false;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -26,11 +32,15 @@ public class InGameUIManager : Singleton<InGameUIManager>
     // Update is called once per frame
     void Update()
     {
-        
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if(!pausePanel.IsVisible())
+                pausePanel.OnPause();
+            else
+                pausePanel.OnResume();
+        }
+
     }
-
-
-
 
     public void OnReadyButtonClick()
     {

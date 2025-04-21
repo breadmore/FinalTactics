@@ -8,10 +8,19 @@ public class GridTile : NetworkBehaviour
     public Vector2Int gridPosition { get; private set; }
     public PlayerCharacter occupyingCharacter { get; private set; }
     private NetworkVariable<bool> isOccupied = new NetworkVariable<bool>();
+
+
+    public PlayerCharacter blockCharacter { get; private set; }
     public bool IsOccupied => isOccupied.Value;
     public float BlockProbability = 0;
     //public float BlockProbability { get; private set; } = 0;
     private bool isBlocking = false;
+
+    private void Start()
+    {
+        TurnManager.Instance.OnTurnEnd += TurnStartSetting;
+    }
+
     public bool CanPlaceCharacter()
     {
         if (IsOccupied) return false;
@@ -52,10 +61,12 @@ public class GridTile : NetworkBehaviour
         isOccupied.Value = false;
     }
 
-    public void BlockProbabilityDecision(float blockProbability)
+    public void BlockProbabilityDecision(float blockProbability, PlayerCharacter blocker)
     {
         if (isBlocking) return;
+        blockCharacter = blocker;
         isBlocking = !isBlocking;
+
         BlockProbability = blockProbability;
     }
 
@@ -65,6 +76,13 @@ public class GridTile : NetworkBehaviour
 
         BlockProbability = 0;
         isBlocking = false;
+    }
 
+    public void TurnStartSetting()
+    {
+        BlockProbability = 0;
+        isBlocking = false;
+        blockCharacter.PlayAnimationIdle();
+        blockCharacter = null;
     }
 }

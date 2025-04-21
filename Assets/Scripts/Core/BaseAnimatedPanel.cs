@@ -17,7 +17,7 @@ public abstract class BaseAnimatedPanel : MonoBehaviour
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
 
-        offScreenPosition = new Vector2(0, -Screen.height);
+        offScreenPosition = new Vector2(-Screen.width, 0);
 
         rectTransform.anchoredPosition = offScreenPosition;
         canvasGroup.alpha = 0f;
@@ -29,8 +29,8 @@ public abstract class BaseAnimatedPanel : MonoBehaviour
     {
         isVisible = true;
 
-        rectTransform.DOAnchorPos(onScreenPosition, slideDuration).SetEase(Ease.OutExpo);
-        canvasGroup.DOFade(1f, fadeDuration);
+        rectTransform.DOAnchorPos(onScreenPosition, slideDuration).SetEase(Ease.OutExpo).SetUpdate(true);
+        canvasGroup.DOFade(1f, fadeDuration).SetUpdate(true);
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
     }
@@ -39,8 +39,8 @@ public abstract class BaseAnimatedPanel : MonoBehaviour
     {
         isVisible = false;
 
-        rectTransform.DOAnchorPos(offScreenPosition, slideDuration).SetEase(Ease.InExpo);
-        canvasGroup.DOFade(0f, fadeDuration);
+        rectTransform.DOAnchorPos(offScreenPosition, slideDuration).SetEase(Ease.InExpo).SetUpdate(true);
+        canvasGroup.DOFade(0f, fadeDuration).SetUpdate(true);
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
     }

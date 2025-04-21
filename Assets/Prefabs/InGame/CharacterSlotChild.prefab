@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 3594955510889285294}
   - component: {fileID: 8681895277194443845}
   - component: {fileID: 8098810403917251154}
+  - component: {fileID: 822566875183860413}
+  - component: {fileID: 7703625610859056919}
   m_Layer: 5
   m_Name: CharacterSlotChild
   m_TagString: Untagged
@@ -133,3 +135,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e2702d3dfdab00498064be78e2f902f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &822566875183860413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5173771949722693852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: 0
+  m_FlexibleHeight: 0
+  m_LayoutPriority: 1
+--- !u!114 &7703625610859056919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5173771949722693852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86710e43de46f6f4bac7c8e50813a599, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_AspectMode: 2
+  m_AspectRatio: 1

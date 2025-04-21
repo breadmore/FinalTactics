@@ -14,9 +14,9 @@ public class TurnManager : NetworkSingleton<TurnManager>
         public GridTile targetTile;
     }
 
-    public event Action<int> OnTurnStart;
+    public event Action OnTurnStart;
     public event Action OnAllActionsSubmitted;
-    public event Action<int> OnTurnEnd;
+    public event Action OnTurnEnd;
 
     private int currentTurn;
     private int totalPlayers;
@@ -44,6 +44,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         totalPlayers = playerCount;
         currentTurn = 1;
         isGameActive = true;
+        
         //StartTurn();
     }
 
@@ -56,7 +57,9 @@ public class TurnManager : NetworkSingleton<TurnManager>
 
         Debug.Log($"Turn {currentTurn} started!");
         GameManager.Instance.SetState(GameState.GameStarted);
-        OnTurnStart?.Invoke(currentTurn);
+        InGameUIManager.Instance.turnText.text = currentTurn.ToString();
+
+        OnTurnStart?.Invoke();
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -158,7 +161,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
     private IEnumerator EndTurn()
     {
         yield return new WaitForSeconds(1f);
-        OnTurnEnd?.Invoke(currentTurn);
+        OnTurnEnd?.Invoke();
 
         NotifyTurnEndClientRpc(currentTurn);
         if (isGameActive)

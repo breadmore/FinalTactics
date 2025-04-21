@@ -47,6 +47,7 @@ public class MoveActionHandler : IActionHandler
         }
 
         player.MoveToGridTile(targetTile);
+        player.PlayAnimationMove();
     }
 }
 public class PassActionHandler : IActionHandler
@@ -70,6 +71,7 @@ public class PassActionHandler : IActionHandler
         }
 
         BallManager.Instance.PassBall(player, targetTile);
+        player.PlayAnimationPass();
     }
 }
 public class DribbleActionHandler : IActionHandler
@@ -101,12 +103,15 @@ public class DribbleActionHandler : IActionHandler
             Debug.Log($"{player.GetCharacterId()}의 드리블이 블록으로 차단되었습니다!");
             // 실패 처리 로직 (볼 뺏김 or 제자리 유지)
             player.MoveToGridTile(targetTile);
+            player.PlayAnimationTrip();
+            BallManager.Instance.StealBall(targetTile.blockCharacter);
             return;
         }
         
 
         // 드리블 성공 시
         player.MoveToGridTile(targetTile);
+        player.PlayAnimationDribble();
         BallManager.Instance.DribbleBall(targetTile,player);
     }
 }
@@ -125,9 +130,12 @@ public class BlockActionHandler : IActionHandler
             Debug.LogWarning("Block failed.");
             return;
         }
+
+        player.PlayAnimationBlock();
+
         float probability = GridUtils.GetBlockSuccessProbability(player);
   
-        targetTile.BlockProbabilityDecision(probability);
+        targetTile.BlockProbabilityDecision(probability, player);
     }
 }
 
