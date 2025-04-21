@@ -140,7 +140,7 @@ public class BallManager : NetworkSingleton<BallManager>
             return;
         }
 
-        passer.PlayAnimationPass();
+
 
         MoveBall(targetTile);
 

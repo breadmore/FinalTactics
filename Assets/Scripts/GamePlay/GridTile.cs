@@ -82,7 +82,12 @@ public class GridTile : NetworkBehaviour
     {
         BlockProbability = 0;
         isBlocking = false;
-        blockCharacter.PlayAnimationIdle();
-        blockCharacter = null;
+        if (blockCharacter != null)
+        {
+
+
+            blockCharacter.PlayAnimationIdle();
+            blockCharacter = null;
+        }
     }
 }
