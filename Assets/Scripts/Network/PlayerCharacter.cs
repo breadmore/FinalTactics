@@ -6,6 +6,8 @@ using System.Collections;
 public class PlayerCharacter : NetworkBehaviour
 {
     public Transform ballPosition;
+    public ParticleSystem clickParticle;
+
     private PlayerCharacterAnim characterAnimator;
 
     private NetworkVariable<int> characterId = new NetworkVariable<int>();

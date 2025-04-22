@@ -18,7 +18,7 @@ public class GridTile : NetworkBehaviour
 
     private void Start()
     {
-        TurnManager.Instance.OnTurnEnd += TurnStartSetting;
+        TurnManager.Instance.OnTurnStart += TurnStartSetting;
     }
 
     public bool CanPlaceCharacter()

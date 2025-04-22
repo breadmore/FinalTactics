@@ -46,8 +46,8 @@ public class MoveActionHandler : IActionHandler
             return;
         }
 
-        player.MoveToGridTile(targetTile);
         player.PlayAnimationMove();
+        player.MoveToGridTile(targetTile);
     }
 }
 public class PassActionHandler : IActionHandler
@@ -70,23 +70,27 @@ public class PassActionHandler : IActionHandler
             return;
         }
 
-        BallManager.Instance.PassBall(player, targetTile);
         player.PlayAnimationPass();
+        BallManager.Instance.PassBall(player, targetTile);
     }
 }
 public class DribbleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (targetTile.IsOccupied)
+        if (targetTile.IsOccupied || !BallManager.Instance.IsBallOwnedBy(player))
         {
             // 사람 있을경우
             return false;
         }
         else
         {
-            return true;
+            int moveRange = Mathf.Min(player.CharacterStat.speed, player.Stamina);
+            int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
+            return distance <= moveRange;
         }
+
+
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -102,16 +106,16 @@ public class DribbleActionHandler : IActionHandler
         {
             Debug.Log($"{player.GetCharacterId()}의 드리블이 블록으로 차단되었습니다!");
             // 실패 처리 로직 (볼 뺏김 or 제자리 유지)
-            player.MoveToGridTile(targetTile);
             player.PlayAnimationTrip();
+            player.MoveToGridTile(targetTile);
             BallManager.Instance.StealBall(targetTile.blockCharacter);
             return;
         }
         
 
         // 드리블 성공 시
-        player.MoveToGridTile(targetTile);
         player.PlayAnimationDribble();
+        player.MoveToGridTile(targetTile);
         BallManager.Instance.DribbleBall(targetTile,player);
     }
 }
@@ -166,10 +170,14 @@ public class TackleActionHandler : IActionHandler
         float roll = Random.Range(0f, 1f);
         Debug.Log($"[Tackle] SuccessChance: {successRate}, Rolled: {roll}");
 
+
+
         if (roll < successRate)
         {
             // 내 타일
             var playerTile = GridManager.Instance.GetGridTileAtPosition(player.GridPosition);
+
+            player.PlayAnimationTackle();
 
             // 위치 변경
             player.MoveToGridTile(targetTile);
@@ -179,6 +187,7 @@ public class TackleActionHandler : IActionHandler
         }
         else
         {
+            player.PlayAnimationTrip();
             // 실패 시: 경고 메시지 or 패널티
             Debug.Log($"{player.GetCharacterId()}의 태클이 실패했습니다!");
             // 예: 이동 불가 상태로 만들거나 경고 등
@@ -224,19 +233,22 @@ public class ShootActionHandler : IActionHandler
                 }
                 int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
                 
-                //float successRate = GridUtils.GetShootSuccessProbability(player, distance);
-                float successRate = 1f;
+                float successRate = GridUtils.GetShootSuccessProbability(player, distance);
                 float roll = Random.Range(0f, 1f);
                 Debug.Log($"[Shoot] SuccessChance: {successRate}, Rolled: {roll}");
+
+
 
                 if (roll < successRate)
                 {
                     // 골 처리
+                    player.PlayAnimationShoot();
                     BallManager.Instance.MoveBall(targetTile);
                     GameManager.Instance.Goal(player.Team);
                 }
                 else
                 {
+                    player.PlayAnimationTrip();
                     Debug.Log("Missed...");
                     // 미스 처리 (볼 이동 or 상대에게?)
                 }

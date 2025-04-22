@@ -99,6 +99,7 @@ public static class GameConstants
 
     // 게임 규칙 관련 상수
     public const int MaxScore = 3;  // 승리 조건 (3골)
+    public const float ActionTime = 1f;
 
     // 스탯 관련
     public const int BlockDistance = 1;

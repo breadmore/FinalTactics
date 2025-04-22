@@ -35,6 +35,8 @@ public class TurnManager : NetworkSingleton<TurnManager>
             totalPlayers = (int)NetworkManager.Singleton.ConnectedClients.Count;
             Initialize(totalPlayers);
         }
+
+        CameraManager.Instance?.RegisterTurnCallbacks(this);
     }
 
     public void Initialize(int playerCount)
@@ -70,6 +72,8 @@ public class TurnManager : NetworkSingleton<TurnManager>
         GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePos);
         ActionCategory actionCategory = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).category;
 
+        RemoveExistingAction(playerId);
+
         PlayerAction newAction = new PlayerAction
         {
             playerId = playerId,
@@ -93,6 +97,13 @@ public class TurnManager : NetworkSingleton<TurnManager>
         Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} at {targetTile.gridPosition}");
     }
 
+    private void RemoveExistingAction(ulong playerId)
+    {
+        defenseActions.RemoveAll(a => a.playerId == playerId);
+        commonActions.RemoveAll(a => a.playerId == playerId);
+        offenseActions.RemoveAll(a => a.playerId == playerId);
+    }
+
 
     [ClientRpc]
     private void UpdateClientStateClientRpc(ulong playerId, int actionId, Vector2Int position)
@@ -105,15 +116,20 @@ public class TurnManager : NetworkSingleton<TurnManager>
         if (!IsServer) return;
         Debug.Log($"Executing all actions for Turn {currentTurn}");
 
-        ExecuteActionList(defenseActions);
-        ExecuteActionList(commonActions);
-        ExecuteActionList(offenseActions);
+        StartCoroutine(ExecuteActionCoroutine());
+    }
+
+    private IEnumerator ExecuteActionCoroutine()
+    {
+        yield return StartCoroutine(ExecuteActionList(defenseActions));
+        yield return StartCoroutine(ExecuteActionList(commonActions));
+        yield return StartCoroutine(ExecuteActionList(offenseActions));
 
         OnAllActionsSubmitted?.Invoke();
         StartCoroutine(EndTurn());
     }
 
-    private void ExecuteActionList(List<PlayerAction> actionList)
+    private IEnumerator ExecuteActionList(List<PlayerAction> actionList)
     {
         actionList.Sort((a, b) =>
         {
@@ -134,26 +150,22 @@ public class TurnManager : NetworkSingleton<TurnManager>
             Vector2Int targetPos = action.targetTile.gridPosition;
             ActionType actionType = (ActionType)action.actionId;
 
-            // 액션 핸들러 생성
             IActionHandler handler = ActionHandlerFactory.CreateHandler(actionType);
-
-            // 이동형 액션인지 확인
             bool isMovementAction = actionType == ActionType.Move || actionType == ActionType.Dribble;
 
-            // 이동형이고 타일이 이미 점유되어 있다면 실패 처리
             if (isMovementAction && occupiedPositions.Contains(targetPos))
             {
                 Debug.Log($"[TurnManager] {actionType} 실패: Player {action.playerId} - {targetPos}는 이미 점유됨.");
                 character.OnActionFailed();
-                continue;
             }
-
-            handler.ExecuteAction(character, action.targetTile);
-
-            if (isMovementAction)
+            else
             {
-                occupiedPositions.Add(targetPos);
+                handler.ExecuteAction(character, action.targetTile);
+                if (isMovementAction)
+                    occupiedPositions.Add(targetPos);
             }
+
+            yield return new WaitForSeconds(GameConstants.ActionTime);
         }
     }
 

@@ -25,7 +25,7 @@ public class BallManager : NetworkSingleton<BallManager>
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
         if (IsServer)
         {
-            TurnManager.Instance.OnTurnEnd += TurnStartSetting;
+            TurnManager.Instance.OnTurnStart += TurnStartSetting;
         }
     }
 
