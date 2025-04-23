@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using QFSW.QC;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,30 +32,47 @@ public class BallManager : NetworkSingleton<BallManager>
 
     private void Update()
     {
-        if (!IsServer) return;  // 👈 서버에서만 실행
+        if (!IsServer) return;  // 서버에서만 실행
 
-        if (GameManager.Instance.CurrentState == GameState.WaitingForSpawnBall
-            && Input.GetMouseButtonDown(0))
-        {
-            Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit) && hit.collider.CompareTag("Grid"))
-            {
-                var tile = hit.collider.GetComponent<GridTile>();
-                GameManager.Instance.OnGridTileSelected(tile);
-                SpawnBall(tile);
-            }
-        }
+        HandleBallSpawnInput();
 
-        if(dribbler != null)
+        if (dribbler != null)
         {
             spawnedBall.transform.position = dribbler.ballPosition.position;
         }
     }
 
+    private void HandleBallSpawnInput()
+    {
+        if (!IsWaitingForSpawnBallState()) return;
+        if (!Input.GetMouseButtonDown(0)) return;
+
+        var ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (!Physics.Raycast(ray, out var hit) || !hit.collider.CompareTag("Grid")) return;
+
+        TryBallSpawn(hit.collider.GetComponent<GridTile>());
+    }
+
+    private void TryBallSpawn(GridTile gridTile)
+    {
+        GameManager.Instance.OnGridTileSelected(gridTile);
+
+        SpawnBall(gridTile);
+
+    }
+    private bool IsWaitingForSpawnBallState()
+    {
+        return GameManager.Instance._currentState is BallPlacementState;
+    }
+
     public void OnClickSpawnBallButton()
     {
         if (!IsServer) return;
-        GameManager.Instance.OnWaitingForSpawnBall();
+
+        if(GameManager.Instance._currentState is CharacterPlacementCompleteState)
+        {
+            GameManager.Instance.ChangeState<BallPlacementState>();
+        }
     }
 
     public void PreSpawnBall()
@@ -198,5 +216,11 @@ public class BallManager : NetworkSingleton<BallManager>
     {
         if(!IsServer) return;
         SetBallOwner(CurrentTile.occupyingCharacter);
+    }
+
+    [Command]
+    public void BallOwn()
+    {
+        Debug.Log(BallOwnerNetworkId.Value);
     }
 }

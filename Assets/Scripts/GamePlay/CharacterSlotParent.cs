@@ -1,15 +1,23 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
     private int characterCount = 0;
     public CharacterSlotChild selectedChild;
+
     private void OnEnable()
     {
         characterCount = 0;
     }
+
     private void Start()
+    {
+        InitializeCharacterSlots();
+    }
+
+    private void InitializeCharacterSlots()
     {
         CreateChild(8);
         for (int i = 0; i < 8; i++)
@@ -20,57 +28,82 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
     private void Update()
     {
-        if (GameManager.Instance.CurrentState == GameState.CharacterDataSelected && Input.GetMouseButtonDown(0))
+        if (!IsCharacterDataSelectedState())
         {
-            Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                if (hit.collider.CompareTag("Grid"))
-                {
-                    if (GameManager.Instance.SelectedCharacterData != null)
-                    {
-                        GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
-                        // 배치 불가능할 경우 return
-                        if (!GameManager.Instance.SelectedGridTile.CanPlaceCharacter()) return;
-                        GameManager.Instance.thisPlayerBrain.SpawnPlayer(GameManager.Instance.SelectedGridTile);
-                        selectedChild.gameObject.SetActive(false);
-                        // spawn 성공시 아래 작업
-                        characterCount++;
-
-                        CheckCharacterLimit(); // 캐릭터 수 제한 확인
-                    }
-                    else
-                    {
-                        Debug.LogError("No character selected!");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("No Grid Selected");
-                }
-            }
+            return;
         }
+        HandleCharacterPlacementInput();
+    }
+
+    private bool IsCharacterDataSelectedState()
+    {
+        // 상태 패턴 버전: 현재 상태가 CharacterDataSelectedState인지 확인
+        return GameManager.Instance._currentState is CharacterDataSelectedState;
+    }
+
+    private void HandleCharacterPlacementInput()
+    {
+        if (!Input.GetMouseButtonDown(0)) return;
+
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            Debug.Log("UI");
+            return;
+        }
+
+        var ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (!Physics.Raycast(ray, out var hit) || !hit.collider.CompareTag("Grid")) return;
+
+        TryPlaceCharacter(hit.collider.GetComponent<GridTile>());
+    }
+
+    private void TryPlaceCharacter(GridTile gridTile)
+    {
+        if (GameManager.Instance.SelectedCharacterData == null)
+        {
+            Debug.LogError("No character selected!");
+            return;
+        }
+
+        GameManager.Instance.OnGridTileSelected(gridTile);
+
+        if (!gridTile.CanPlaceCharacter()) return;
+
+        GameManager.Instance.thisPlayerBrain.SpawnPlayer(gridTile);
+        OnCharacterSpawnSuccess();
+        
+    }
+
+    private void OnCharacterSpawnSuccess()
+    {
+        selectedChild.gameObject.SetActive(false);
+        characterCount++;
+        CheckCharacterLimit();
+
     }
 
     private void InitChild(int index)
     {
-        if (LoadDataManager.Instance.characterSlotBackgrounds == null || LoadDataManager.Instance.characterDataReader == null)
+        if (LoadDataManager.Instance.characterSlotBackgrounds == null ||
+            LoadDataManager.Instance.characterDataReader == null)
         {
             Debug.LogError("Data is not assigned!");
             return;
         }
 
         CharacterData characterData = LoadDataManager.Instance.characterDataReader.DataList[index];
-
         childList[index].SetCharacterData(characterData);
-        childList[index].SetcharacterSprite(LoadDataManager.Instance.characterSlotBackgrounds.GetBackground(index));
+        childList[index].SetcharacterSprite(
+            LoadDataManager.Instance.characterSlotBackgrounds.GetBackground(index)
+        );
     }
 
     private void CheckCharacterLimit()
     {
         if (characterCount >= GameConstants.MaxCharacterCount)
         {
-            gameObject.SetActive(false);
+            InGameUIManager.Instance.CharacterSlot.SetActive(false);
+            GameManager.Instance.ChangeState<CharacterPlacementCompleteState>();
         }
     }
 }

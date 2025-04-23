@@ -12,6 +12,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         public ulong playerId;
         public int actionId;
         public GridTile targetTile;
+        public int optionId;
     }
 
     public event Action OnTurnStart;
@@ -57,15 +58,14 @@ public class TurnManager : NetworkSingleton<TurnManager>
         commonActions.Clear();
         offenseActions.Clear();
 
-        Debug.Log($"Turn {currentTurn} started!");
-        GameManager.Instance.SetState(GameState.GameStarted);
+        GameManager.Instance.ChangeState<MainGameState>();
         InGameUIManager.Instance.turnText.text = currentTurn.ToString();
 
         OnTurnStart?.Invoke();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SubmitActionServerRpc(ulong playerId, int actionId, Vector2Int targetTilePos)
+    public void SubmitActionServerRpc(ulong playerId, int actionId, Vector2Int targetTilePos, int optionId)
     {
         if (!isGameActive) return;
 
@@ -78,7 +78,8 @@ public class TurnManager : NetworkSingleton<TurnManager>
         {
             playerId = playerId,
             actionId = actionId,
-            targetTile = targetTile
+            targetTile = targetTile,
+            optionId = optionId
         };
 
         switch (actionCategory)
@@ -94,7 +95,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
                 break;
         }
 
-        Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} at {targetTile.gridPosition}");
+        Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} , Option : {optionId} at {targetTile.gridPosition}");
     }
 
     private void RemoveExistingAction(ulong playerId)
@@ -114,7 +115,6 @@ public class TurnManager : NetworkSingleton<TurnManager>
     public void ExecuteActions()
     {
         if (!IsServer) return;
-        Debug.Log($"Executing all actions for Turn {currentTurn}");
 
         StartCoroutine(ExecuteActionCoroutine());
     }
@@ -155,7 +155,6 @@ public class TurnManager : NetworkSingleton<TurnManager>
 
             if (isMovementAction && occupiedPositions.Contains(targetPos))
             {
-                Debug.Log($"[TurnManager] {actionType} 실패: Player {action.playerId} - {targetPos}는 이미 점유됨.");
                 character.OnActionFailed();
             }
             else
@@ -186,8 +185,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
     [ClientRpc]
     private void NotifyTurnEndClientRpc(int turnNumber)
     {
-        Debug.Log($"[Client] Turn {turnNumber} ended.");
-        GameManager.Instance.SetState(GameState.GameStarted);  // 또는 다음 상태로
+        GameManager.Instance.ChangeState<MainGameState>();  // 또는 다음 상태로
     }
 
     [Command]

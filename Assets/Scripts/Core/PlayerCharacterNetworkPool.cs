@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -33,17 +34,22 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
 
     public NetworkObject GetCharacter(Vector3 position, Quaternion rotation)
     {
+        NetworkObject character;
+
         if (pooledCharacters.Count > 0)
         {
-            var character = pooledCharacters.Dequeue();
-            character.transform.SetPositionAndRotation(position, rotation);
-            character.gameObject.SetActive(true);
-            return character;
+            character = pooledCharacters.Dequeue();
+        }
+        else
+        {
+            Debug.LogWarning("Character pool exhausted! Instantiating additional object.");
+            character = Instantiate(characterPrefab, position, rotation).GetComponent<NetworkObject>();
         }
 
-        Debug.LogWarning("Character pool exhausted! Instantiating additional object.");
-        GameObject obj = Instantiate(characterPrefab, position, rotation);
-        return obj.GetComponent<NetworkObject>();
+        character.transform.SetPositionAndRotation(position, rotation);
+        character.gameObject.SetActive(true);
+        activeCharacters.Add(character);
+        return character;
     }
 
     public void ReturnCharacter(NetworkObject character)
@@ -60,9 +66,12 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
     }
     public void ReturnAllCharacter()
     {
-        foreach (var character in activeCharacters)
+        foreach (var character in activeCharacters.ToList())
         {
-            ReturnCharacter(character);
+            if (character != null && character.IsSpawned)
+            {
+                ReturnCharacter(character);
+            }
         }
         activeCharacters.Clear();
     }

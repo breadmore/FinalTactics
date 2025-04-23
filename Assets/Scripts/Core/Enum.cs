@@ -53,29 +53,6 @@ public enum TeamName
     TeamB
 }
 
-public enum GameState
-{
-    // Selected State
-    CharacterDataSelected,
-    PlayerCharacterSelected,
-    GridTileSelected,
-    ActionSelected,
-
-    // Game Flow State
-    GameStarted,
-    GameFinished,
-
-    // Waiting State
-    WaitingForPlayerReady,
-    WaitingForSpawnBall,
-    WaitingForOtherPlayerAction,
-    WaitingForActionEnd,
-    WaitingForReset,
-
-    // Test State
-    TestState
-
-}
 public enum ActionCategory 
 { 
     Common, 

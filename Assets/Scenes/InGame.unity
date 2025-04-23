@@ -2130,7 +2130,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0.80784315, g: 0.83137256, b: 0.85490197, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -11404,7 +11404,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -12047,7 +12047,7 @@ MonoBehaviour:
   readyButton: {fileID: 510696684}
   CharacterSlot: {fileID: 2046218254}
   ActionSlot: {fileID: 1065309}
-  ShootOptionSlot: {fileID: 1804589294}
+  OptionSlot: {fileID: 1804589296}
   resultPanel: {fileID: 1430531274}
   pausePanel: {fileID: 2049798204}
   gameDataPanel: {fileID: 1908306428}
@@ -20750,7 +20750,7 @@ GameObject:
   - component: {fileID: 1804589297}
   - component: {fileID: 1804589296}
   m_Layer: 5
-  m_Name: ShootOptionSlotParent
+  m_Name: OptionSlotParent
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20788,10 +20788,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   childPrefab: {fileID: -4317101572517738231, guid: 2f987573c4f158a4c830f9134fd94ee2, type: 3}
-  shootOptionSprites:
-  - {fileID: 21300000, guid: 995bb61062c4ed64ea0bf51fb2204f6c, type: 3}
-  - {fileID: 21300000, guid: 26d4288fc9be2e74887bf00156128919, type: 3}
-  - {fileID: 21300000, guid: e4ab725b201fb8a46aaf86ba5cce7c4f, type: 3}
 --- !u!114 &1804589297
 MonoBehaviour:
   m_ObjectHideFlags: 0

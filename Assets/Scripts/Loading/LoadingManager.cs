@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
-using Unity.Services.Lobbies.Models;
-using Unity.Services.Lobbies;
 using DG.Tweening;
 
 public class LoadingManager : DontDestroySingleton<LoadingManager>
@@ -79,7 +77,7 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         await RelayManager.Instance.WaitForRelayConnection();
 
         Debug.Log("씬이 활성화됨! UI를 활성화합니다.");
-        GameManager.Instance.InitGame();
+        GameManager.Instance.ChangeState<CharacterSelectionState>();
     }
 
 

@@ -13,8 +13,6 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
         if(highlightedTiles.Count != 0)
         ClearHighlights();
 
-        Debug.Log("HightLight for action");
-
         var handler = ActionHandlerFactory.CreateHandler(actionType);
         if (handler == null)
         {
@@ -33,7 +31,6 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
 
     private void HighlightTile(GridTile tile)
     {
-        Debug.Log("HighLight");
         var renderer = tile.GetComponent<Renderer>();
         if (renderer != null && highlightMaterial != null)
         {
@@ -44,7 +41,6 @@ public class ActionPreviewManager : Singleton<ActionPreviewManager>
 
     public void ClearHighlights()
     {
-        Debug.Log("Clear!");
         foreach (var tile in highlightedTiles)
         {
             var renderer = tile.GetComponent<Renderer>();

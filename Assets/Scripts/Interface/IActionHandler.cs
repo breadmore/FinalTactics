@@ -83,14 +83,10 @@ public class DribbleActionHandler : IActionHandler
             // 사람 있을경우
             return false;
         }
-        else
-        {
+
             int moveRange = Mathf.Min(player.CharacterStat.speed, player.Stamina);
             int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
             return distance <= moveRange;
-        }
-
-
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -196,65 +192,104 @@ public class TackleActionHandler : IActionHandler
 }
 public class ShootActionHandler : IActionHandler
 {
-    public ShootOption SelectedOption { get; set; } = GameManager.Instance.SelectedShootOption;
+    private ActionOptionData _option;
+
+    public ShootActionHandler()
+    {
+        _option = LoadDataManager.Instance.actionOptionDataReader
+            .GetActionOptionById(GameManager.Instance.SelectedActionOptionData);
+    }
 
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (!BallManager.Instance.IsBallOwnedBy(player)
-            || targetTile.Type != TileType.GoalkeeperZone)
+        // 기본 조건 검사
+        if (!BallManager.Instance.IsBallOwnedBy(player) ||
+            targetTile.Type != TileType.GoalkeeperZone)
         {
             return false;
         }
 
-        int moveRange = player.ShootChargeCount;
+        // 차지 레벨에 따른 사정거리
+        int maxDistance = 1 + player.ShootChargeCount;
         int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
 
-        return distance <= moveRange;
+        return distance <= maxDistance;
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
     {
-        switch (SelectedOption)
+        switch (_option.name)
         {
-            case ShootOption.Cancel:
-                Debug.Log("Shoot canceled. Choose another action.");
+            case "Cancel":
+                HandleCancel(player);
                 break;
 
-            case ShootOption.Charge:
-                player.ChargeShoot();
-                Debug.Log($"Charging... current level: {player.ShootChargeCount}");
+            case "Charge":
+                HandleCharge(player);
                 break;
 
-            case ShootOption.Shoot:
-                if (!CanExecute(player, targetTile))
-                {
-                    Debug.LogWarning("Can't Shooting");
-                    return;
-                }
-                int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
-                
-                float successRate = GridUtils.GetShootSuccessProbability(player, distance);
-                float roll = Random.Range(0f, 1f);
-                Debug.Log($"[Shoot] SuccessChance: {successRate}, Rolled: {roll}");
-
-
-
-                if (roll < successRate)
-                {
-                    // 골 처리
-                    player.PlayAnimationShoot();
-                    BallManager.Instance.MoveBall(targetTile);
-                    GameManager.Instance.Goal(player.Team);
-                }
-                else
-                {
-                    player.PlayAnimationTrip();
-                    Debug.Log("Missed...");
-                    // 미스 처리 (볼 이동 or 상대에게?)
-                }
-
-                player.ResetShootCharge();
+            case "Shoot":
+                HandleShoot(player, targetTile);
                 break;
+
+            default:
+                Debug.LogError($"Unknown shoot option: {_option.name}");
+                break;
+        }
+    }
+
+    private void HandleCancel(PlayerCharacter player)
+    {
+        player.ResetShootCharge();
+        Debug.Log("Shoot canceled. Choose another action.");
+        GameManager.Instance.ChangeState<CharacterControlState>();
+    }
+
+    private void HandleCharge(PlayerCharacter player)
+    {
+        player.ChargeShoot();
+        Debug.Log($"Charging... Current level: {player.ShootChargeCount}");
+    }
+
+    private void HandleShoot(PlayerCharacter player, GridTile targetTile)
+    {
+        if (!CanExecute(player, targetTile))
+        {
+            Debug.LogWarning("Can't shoot to this position");
+            return;
+        }
+
+        int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
+        var shootResult = GridUtils.GetShootSuccessProbability(
+            player,
+            distance,
+            player.ShootChargeCount
+        );
+
+        Debug.Log($"[Shoot] Chance: {shootResult.successRate:P0}, " +
+                 $"Critical: {shootResult.isCritical}, " +
+                 $"Charge: {player.ShootChargeCount}");
+
+        player.ResetShootCharge();
+
+        if (shootResult.IsSuccess())
+        {
+            player.PlayAnimationShoot();
+            BallManager.Instance.MoveBall(targetTile);
+            GameManager.Instance.Goal(player.Team);
+
+            if (shootResult.isCritical)
+            {
+                // 크리티컬 추가 효과
+                //CameraManager.Instance.PlayScreenShake(0.3f);
+            }
+        }
+        else
+        {
+            player.PlayAnimationTrip();
+            Debug.Log("Shot missed...");
+            // 미스 처리 - 볼을 랜덤한 근처 타일로 이동
+            //BallManager.Instance.MoveToRandomAdjacentTile(targetTile);
         }
     }
 }

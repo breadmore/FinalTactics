@@ -42,10 +42,45 @@ public static class GridUtils
         return Mathf.Clamp01(baseChance + bonus);
     }
 
-    public static float GetShootSuccessProbability(PlayerCharacter shooter, int distance)
+    // 슛 성공 확률 (차지 보너스 반영)
+    public static ShootResult GetShootSuccessProbability(PlayerCharacter shooter, int distance, int chargeLevel = 0)
     {
-        float baseProbability = (shooter.CharacterStat.shoot * 8f) - (distance * 10f);
-        return Mathf.Clamp01(baseProbability / 100f); // 0~1 사이로 보정
+        // 기본 계산
+        float baseRate = shooter.CharacterStat.shoot * 0.08f; // 0~100 스탯을 0~8 범위로
+
+        // 거리 패널티 (최대 70% 패널티)
+        float distancePenalty = Mathf.Min(distance * 0.07f, 0.7f);
+
+        // 차지 보너스 (최대 30% 보너스)
+        float chargeBonus = Mathf.Min(chargeLevel * 0.1f, 0.3f);
+
+        // 최종 확률 계산
+        float successRate = Mathf.Clamp01(baseRate - distancePenalty + chargeBonus);
+
+        // 크리티컬 확률 (기본 10% + 차지 보너스)
+        bool isCritical = Random.value < (0.1f + chargeLevel * 0.05f);
+
+        return new ShootResult(
+            successRate: isCritical ? Mathf.Min(successRate * 1.5f, 0.95f) : successRate,
+            isCritical: isCritical
+        );
+    }
+
+    public readonly struct ShootResult
+    {
+        public readonly float successRate;
+        public readonly bool isCritical;
+
+        public ShootResult(float successRate, bool isCritical)
+        {
+            this.successRate = successRate;
+            this.isCritical = isCritical;
+        }
+
+        public bool IsSuccess()
+        {
+            return Random.value <= successRate;
+        }
     }
 }
 
@@ -55,29 +90,6 @@ public class GridManager : NetworkSingleton<GridManager>
 
     [SerializeField] private List<GridTile> gridTileList = new List<GridTile>();
 
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer)
-        {
-            GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
-        }
-    }
-
-    private void HandleGameStateChanged(GameState state)
-    {
-        if (state == GameState.WaitingForReset)
-        {
-            Debug.Log($"{name}: 턴 시작 시 준비 행동 실행");
-            ResetAllGridTile();
-        }
-    }
-
-    public override void OnDestroy()
-    {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnGameStateChanged -= HandleGameStateChanged;
-        base.OnDestroy();
-    }
 
     private void Awake()
     {

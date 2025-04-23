@@ -14,14 +14,13 @@ public class InGameUIManager : Singleton<InGameUIManager>
     public Button readyButton;
     public GameObject CharacterSlot;
     public GameObject ActionSlot;
-    public GameObject ShootOptionSlot;
+    public OptionSlotParent OptionSlot;
 
     [Header("패널 관리")]
     public ResultPanel resultPanel;
     public PausePanel pausePanel;
     public GameDataPanel gameDataPanel;
 
-    private bool isOption = false;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -44,15 +43,8 @@ public class InGameUIManager : Singleton<InGameUIManager>
 
     public void OnReadyButtonClick()
     {
+        Debug.Log("Button Click");
         GameManager.Instance.SetPlayerReady();
-    }
-
-    public void ToggleOption()
-    {
-        Debug.Log("Toggle!!");
-        isOption = !isOption;
-        ActionSlot.SetActive(!isOption);
-        ShootOptionSlot.SetActive(isOption);
     }
 
     public void ShowGoalMessage(TeamName scoringTeam)
@@ -79,9 +71,9 @@ public class InGameUIManager : Singleton<InGameUIManager>
 
     public void CloseAllSlot()
     {
-        isOption = false;
+        Debug.Log("다꺼져");
         CharacterSlot.SetActive(false);
         ActionSlot.SetActive(false);
-        ShootOptionSlot.SetActive(false);
+        OptionSlot.gameObject.SetActive(false);
     }
 }

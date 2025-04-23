@@ -169,17 +169,16 @@ public class CameraManager : Singleton<CameraManager>
 
     private void FocusCameraOnCharacter(PlayerCharacter character)
     {
-        if(focusPlayer != null)
+        if(focusPlayer != null && focusPlayer.clickParticle != null)
         {
+
             focusPlayer.clickParticle.gameObject.SetActive(false);
             focusPlayer = null;
         }
 
         focusPlayer = character;
 
-
-        if (focusPlayer.OwnerClientId == GameManager.Instance.thisPlayerBrain.OwnerClientId 
-            && GameManager.Instance.CurrentState == GameState.GameStarted)
+        if (focusPlayer.clickParticle != null)
         {
             focusPlayer.clickParticle.gameObject.SetActive(true);
         }
@@ -208,10 +207,11 @@ public class CameraManager : Singleton<CameraManager>
     private void TurnEndSetting()
     {
         Debug.Log("Turn End!");
-        if (focusPlayer != null)
+        if (focusPlayer != null && focusPlayer.clickParticle != null)
         {
             focusPlayer.clickParticle.gameObject.SetActive(false);
             focusPlayer = null;
+           
         }
     }
 

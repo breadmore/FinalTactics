@@ -56,7 +56,6 @@ public class PlayerCharacter : NetworkBehaviour
         // 서버에서만 gridPosition 설정하도록 수정
         if (IsServer)
         {
-            Debug.Log("Id : " + characterId);
             this.characterId.Value = characterId;
             this.team.Value = team;
             this.gridPosition.Value = gridPosition;

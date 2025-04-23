@@ -42,7 +42,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         if (newCharacterData == null) return;
 
         characterData = newCharacterData;
-        SetCharacterData(characterData.characterStat);
+        SetCharacterStat(characterData.characterStat);
     }
 
     public void SetcharacterSprite(Sprite newSprite)
@@ -59,7 +59,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         }
     }
 
-    public void SetCharacterData(CharacterStat newCharacterStat)
+    public void SetCharacterStat(CharacterStat newCharacterStat)
     {
         if (characterData == null) return;
 
@@ -73,7 +73,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
 
     private void SelectCharacterData()
     {
-        Debug.Log("Select Character!");
+        Debug.Log("Selecte!");
         GameManager.Instance.OnCharacterDataSelected(characterData);
         slotParent.selectedChild = this;
     }

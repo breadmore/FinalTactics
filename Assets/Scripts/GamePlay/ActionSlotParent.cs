@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Unity.Services.Authentication;
 using System;
+using UnityEngine.EventSystems;
 
 public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 {
@@ -34,37 +35,55 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 
     private void Update()
     {
-        if (GameManager.Instance.CurrentState == GameState.ActionSelected && Input.GetMouseButtonDown(0))
-        {
-            Debug.Log("Action State!");
-            Ray ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                if (hit.collider.CompareTag("Grid"))
-                {
-                    if (GameManager.Instance.SelectedCharacterData != null)
-                    {
-                        GameManager.Instance.OnGridTileSelected(hit.collider.GetComponent<GridTile>());
-                        //GameManager.Instance.ExecuteSelectedAction(GameManager.Instance.SelectedGridTile.gridPosition);
-                        TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId, 
-                            GameManager.Instance.SelectedActionData, 
-                            GameManager.Instance.SelectedGridTile.gridPosition);
-                        // Action 성공시 아래 작업
+        if (!IsActionSelectedState()) return;
 
-                    }
-                    else
-                    {
-                        Debug.LogError("No character selected!");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("No Grid Selected");
-                }
-            }
-        }
+        HandleActionInput();
     }
 
+    private bool IsActionSelectedState()
+    {
+        return GameManager.Instance._currentState is ActionDataSelectedState;
+    }
+
+    private void HandleActionInput()
+    {
+        if (!Input.GetMouseButtonDown(0)) return;
+
+        Debug.Log("Grid Click");
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            Debug.Log("UI");
+            return;
+        }
+
+        var ray = CameraManager.Instance.mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (!Physics.Raycast(ray, out var hit) || !hit.collider.CompareTag("Grid")) return;
+
+        TryAction(hit.collider.GetComponent<GridTile>());
+    }
+
+    private void TryAction(GridTile gridTile)
+    {
+        if (GameManager.Instance.SelectedPlayerCharacter != null)
+        {
+            GameManager.Instance.OnGridTileSelected(gridTile);
+            Debug.Log(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId);
+            Debug.Log(GameManager.Instance.SelectedActionData);
+            Debug.Log(GameManager.Instance.SelectedGridTile.gridPosition);
+            TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId,
+                GameManager.Instance.SelectedActionData,
+                GameManager.Instance.SelectedGridTile.gridPosition,
+                GameManager.Instance.SelectedActionOptionData);
+            // Action 성공시 아래 작업
+
+            GameManager.Instance.ChangeState<MainGameState>();
+
+        }
+        else
+        {
+            Debug.LogError("No character selected!");
+        }
+    }
     private void InitChild(int index)
     {
         if (LoadDataManager.Instance.actionSlotBackgrounds == null || LoadDataManager.Instance.actionDataReader == null)
@@ -80,11 +99,9 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
     // 공 소유 여부에 따라 어떤 액션들을 보여줄지 결정
     public void RefreshActionSlots(bool hasBall)
     {
-        Debug.Log("Open! slot");
         foreach (var slot in childList)
         {
             var actionData = LoadDataManager.Instance.actionDataReader.GetActionDataById(slot.ActionId);
-            Debug.Log(slot.ActionId + " : is -> "+actionData.category);
 
             if (actionData == null)
             {
@@ -99,13 +116,11 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
 
             if (hasBall)
             {
-                Debug.Log("Has ball!");
                 // 공이 있을 땐: 공통 + 공격
                 slot.gameObject.SetActive(isCommon || isOffensive);
             }
             else
             {
-                Debug.Log("No Ball!");
                 // 공이 없을 땐: 공통 + 수비
                 slot.gameObject.SetActive(isCommon || isDefensive);
             }
