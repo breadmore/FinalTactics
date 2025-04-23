@@ -203,22 +203,5 @@ public class CameraManager : Singleton<CameraManager>
         MoveCameraTo(targetPosition);
     }
 
-    //Focus Off
-    private void TurnEndSetting()
-    {
-        Debug.Log("Turn End!");
-        if (focusPlayer != null && focusPlayer.clickParticle != null)
-        {
-            focusPlayer.clickParticle.gameObject.SetActive(false);
-            focusPlayer = null;
-           
-        }
-    }
-
-
-    public void RegisterTurnCallbacks(TurnManager turnManager)
-    {
-        turnManager.OnTurnEnd += TurnEndSetting;
-    }
     #endregion
 }

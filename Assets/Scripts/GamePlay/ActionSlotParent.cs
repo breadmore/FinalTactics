@@ -49,10 +49,8 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
     {
         if (!Input.GetMouseButtonDown(0)) return;
 
-        Debug.Log("Grid Click");
         if (EventSystem.current.IsPointerOverGameObject())
         {
-            Debug.Log("UI");
             return;
         }
 
@@ -67,16 +65,14 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
         if (GameManager.Instance.SelectedPlayerCharacter != null)
         {
             GameManager.Instance.OnGridTileSelected(gridTile);
-            Debug.Log(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId);
-            Debug.Log(GameManager.Instance.SelectedActionData);
-            Debug.Log(GameManager.Instance.SelectedGridTile.gridPosition);
+
             TurnManager.Instance.SubmitActionServerRpc(GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId,
                 GameManager.Instance.SelectedActionData,
                 GameManager.Instance.SelectedGridTile.gridPosition,
                 GameManager.Instance.SelectedActionOptionData);
             // Action 성공시 아래 작업
 
-            GameManager.Instance.ChangeState<MainGameState>();
+            GameManager.Instance.ChangeState<PlayerActionDecisionState>();
 
         }
         else

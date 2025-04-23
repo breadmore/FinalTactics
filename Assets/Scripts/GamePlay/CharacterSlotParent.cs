@@ -47,7 +47,6 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
         if (EventSystem.current.IsPointerOverGameObject())
         {
-            Debug.Log("UI");
             return;
         }
 

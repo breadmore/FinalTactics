@@ -107,7 +107,7 @@ public class PlayerBrain : NetworkBehaviour
             if (playerCharacter != null)
             {
                 gridTile.SetOccupied(playerCharacter);
-                Debug.Log($"[Client] GridTile 동기화 완료: {gridPosition}");
+                //Debug.Log($"[Client] GridTile 동기화 완료: {gridPosition}");
             }
         }
     }
@@ -118,7 +118,7 @@ public class PlayerBrain : NetworkBehaviour
         if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
             playerData.SetReady(isReady);
-            Debug.Log($"Player {playerId} ready state updated to: {isReady}");
+            //Debug.Log($"Player {playerId} ready state updated to: {isReady}");
             UpdateReadyStateClientRpc(playerId, isReady);
 
         }
@@ -132,7 +132,7 @@ public class PlayerBrain : NetworkBehaviour
         if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
             playerData.SetReady(isReady);
-            Debug.Log($"Player {playerId} ready state synced to: {isReady}");
+            //Debug.Log($"Player {playerId} ready state synced to: {isReady}");
 
         }
     }

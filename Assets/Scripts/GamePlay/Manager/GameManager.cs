@@ -40,13 +40,34 @@ public class GameManager : NetworkSingleton<GameManager>
     public void SetPlayerCharacter(PlayerCharacter playerCharacter) => SelectedPlayerCharacter = playerCharacter;
 
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        attackingTeam.OnValueChanged += OnAttackingTeamChanged;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+
+        attackingTeam.OnValueChanged -= OnAttackingTeamChanged;
+    }
+
+    private void OnAttackingTeamChanged(TeamName prev, TeamName curr)
+    {
+        Debug.Log($"[CLIENT] Attacking team changed: {curr}");
+        BallManager.Instance.UpdateSpawnBallButtonState();
+    }
+
     public void DecideFirstAttack()
     {
-        if (!IsServer) return;
-        bool coinResult = CoinToss();
-        attackingTeam.Value = coinResult ? TeamName.TeamA : TeamName.TeamB;
-        Debug.Log($"Attacking team is {AttackingTeam}");
-
+        if (IsServer)
+        {
+            bool coinResult = CoinToss();
+            attackingTeam.Value = coinResult ? TeamName.TeamA : TeamName.TeamB;
+            Debug.Log($"Attacking team is {AttackingTeam}");
+        }
     }
 
     public void ChangeState(IGameState newState)
@@ -78,9 +99,14 @@ public class GameManager : NetworkSingleton<GameManager>
     public void ClearAllSelected()
     {
         SelectedGridTile = null;
+
         SelectedCharacterData = null;
         SelectedActionData = 0;
-        SelectedPlayerCharacter = null;
+        if (SelectedPlayerCharacter != null)
+        {
+            SelectedPlayerCharacter.clickParticle.gameObject.SetActive(false);
+            SelectedPlayerCharacter = null;
+        }
         SelectedActionOptionData = 0;
     }
     public void ClearSelected<T>(ref T selectedField)
@@ -124,17 +150,14 @@ public class GameManager : NetworkSingleton<GameManager>
     }
 
 
-    public void StartGame()
+    public void StartNewTurn()
     {
-        Debug.Log("Game Started!");
-        //TurnManager.Instance.Initialize(PlayerDataDict.Count);
-        ChangeState<MainGameState>();
+        ChangeState<InitGameState>();
     }
 
     public void StartAction()
     {
-        ChangeState<ActionExcutionState>();
-        TurnManager.Instance.ExecuteActions();
+        ChangeState<ActionExecutionState>();
     }
 
     public async void SetPlayerReady()
@@ -265,8 +288,9 @@ public class GameManager : NetworkSingleton<GameManager>
     [ClientRpc]
     public void ResetGameClientRpc()
     {
+        Debug.Log("All Client Reset");
         // 모든 클라이언트 초기화
-        ChangeState<CharacterSelectionState>();
+        ChangeState<CharacterDataSelectionState>();
         BallManager.Instance.UpdateSpawnBallButtonState();
     }
 
@@ -323,4 +347,6 @@ public class GameManager : NetworkSingleton<GameManager>
 
         Debug.Log("B Team score : " + teamB.score);
     }
+
+
 }

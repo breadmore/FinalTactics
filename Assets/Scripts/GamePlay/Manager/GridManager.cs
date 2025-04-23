@@ -164,6 +164,13 @@ public class GridManager : NetworkSingleton<GridManager>
         }
     }
 
+    public void TurnStartSetting()
+    {
+        foreach(var gridTile in gridTileList)
+        {
+            gridTile.TurnStartSetting();
+        }
+    }
     public Vector3 GetNearestGridCenter(Vector3 worldPosition)
     {
         if (grid == null)

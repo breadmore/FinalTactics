@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
+using Unity.Netcode;
 public abstract class GameStateBase : IGameState
 {
     public virtual void EnterState() { }
@@ -16,22 +17,21 @@ public abstract class GameStateBase : IGameState
 }
 public class PlayerConnectionState : GameStateBase
 {
-
     public override void EnterState()
     {
         Debug.Log("Entered PlayerConnectionState");
-        BallManager.Instance.UpdateSpawnBallButtonState();
+        GameManager.Instance.DecideFirstAttack();
         EnterGame();
     }
 
     private void EnterGame()
     {
-        GameManager.Instance.ChangeState<CharacterSelectionState>();
+        GameManager.Instance.ChangeState<CharacterDataSelectionState>();
 
     }
 }
 
-public class CharacterSelectionState : GameStateBase
+public class CharacterDataSelectionState : GameStateBase
 {
     public override void EnterState()
     {
@@ -128,20 +128,33 @@ public class ReadyCheckState : GameStateBase
 
     public override void HandleAllPlayersReady()
     {
-        GameManager.Instance.StartGame();
+
+        GameManager.Instance.StartNewTurn();
+
     }
 }
 
 
-
-
-public class MainGameState : GameStateBase
+public class InitGameState : GameStateBase
 {
     public override void EnterState()
     {
-        Debug.Log("Entered MainGameState");
-    }
+        TurnManager.Instance.StartTurn();
+        GameManager.Instance.ClearAllSelected();
+        GridManager.Instance.TurnStartSetting();
+        BallManager.Instance.TurnStartSetting();
+        Debug.Log($"Turn {TurnManager.Instance.currentTurn} started");
 
+        GameManager.Instance.ChangeState<PlayerActionDecisionState>();
+    }
+}
+
+public class PlayerActionDecisionState : GameStateBase
+{
+    public override void EnterState()
+    {
+        Debug.Log($"Turn {TurnManager.Instance.currentTurn} started");
+    }
     public override void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
     {
         if (playerCharacter.OwnerClientId == GameManager.Instance.thisPlayerBrain.OwnerClientId)
@@ -159,10 +172,7 @@ public class MainGameState : GameStateBase
     {
         GameManager.Instance.StartAction();
     }
-
-
 }
-
 
 public class CharacterControlState : GameStateBase
 {
@@ -178,7 +188,7 @@ public class CharacterControlState : GameStateBase
     {
         GameManager.Instance.SetActionData(actionData.id);
         if (!actionData.hasOption)
-            GameManager.Instance.ChangeState(new ActionDataSelectedState());
+            GameManager.Instance.ChangeState<ActionDataSelectedState>();
         else
         {
             GameManager.Instance.ChangeState<ActionOptionSelecteState>();
@@ -223,11 +233,18 @@ public class GameFinishedState : GameStateBase
     }
 }
 
-public class ActionExcutionState : GameStateBase
+public class ActionExecutionState : GameStateBase
 {
     public override void EnterState()
     {
         Debug.Log("Entered ActionExcutionState");
+        TurnManager.Instance.ExecuteActions().Forget();
+    }
+
+    public override void UpdateState()
+    {
+        // 액션 실행 완료 대기
+        // TurnManager에서 ClientRpc로 완료 알림
     }
 
 
@@ -249,7 +266,8 @@ public class GameResetState : GameStateBase
         BallManager.Instance.DespawnBall();
         GameManager.Instance.ResetAllPlayersReadyState();
         GridManager.Instance.ResetAllGridTile();
-        //ExitState();
+
+
         ResetEnd();
     }
 
@@ -328,7 +346,6 @@ public class ActionOptionSelecteState : GameStateBase
 
     private void ExecuteCharge(ActionOptionData option)
     {
-        Debug.Log("Charge");
         // 즉시 실행되는 액션 (예: 차지 슛)
         InGameUIManager.Instance.CloseAllSlot();
 
@@ -339,12 +356,11 @@ public class ActionOptionSelecteState : GameStateBase
             GameManager.Instance.SelectedPlayerCharacter.GridPosition,
             option.id // 옵션 ID 추가 전송
         );
-        GameManager.Instance.ChangeState<MainGameState>();
+        GameManager.Instance.ChangeState<PlayerActionDecisionState>();
     }
 
     private void PrepareTargetSelection()
     {
-        Debug.Log("Shoot");
         // 타겟 선택이 필요한 액션 (예: 일반 슛)
         GameManager.Instance.SetActionData(2);
         GameManager.Instance.ChangeState<ActionDataSelectedState>();
@@ -352,7 +368,6 @@ public class ActionOptionSelecteState : GameStateBase
 
     private void CancelSelection()
     {
-        Debug.Log("Cancel");
         // 옵션 선택 취소
         InGameUIManager.Instance.CloseAllSlot();
         GameManager.Instance.ChangeState<CharacterControlState>();

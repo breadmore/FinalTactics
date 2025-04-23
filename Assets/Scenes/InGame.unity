@@ -20463,11 +20463,11 @@ PrefabInstance:
       objectReference: {fileID: 21300000, guid: b3a680bbcfb9748e2b5abd911adbae93, type: 3}
     - target: {fileID: 3657251358800895641, guid: 65dea783d72b94614b1006d57c94754b, type: 3}
       propertyPath: m_Alpha
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3657251358800895641, guid: 65dea783d72b94614b1006d57c94754b, type: 3}
       propertyPath: m_Interactable
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5201653060648982522, guid: 65dea783d72b94614b1006d57c94754b, type: 3}
       propertyPath: m_Pivot.x

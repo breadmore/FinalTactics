@@ -9,7 +9,6 @@ public class GridTile : NetworkBehaviour
     public PlayerCharacter occupyingCharacter { get; private set; }
     private NetworkVariable<bool> isOccupied = new NetworkVariable<bool>();
 
-
     public PlayerCharacter blockCharacter { get; private set; }
     public bool IsOccupied => isOccupied.Value;
     public float BlockProbability = 0;
@@ -18,7 +17,7 @@ public class GridTile : NetworkBehaviour
 
     private void Start()
     {
-        TurnManager.Instance.OnTurnStart += TurnStartSetting;
+
     }
 
     public bool CanPlaceCharacter()
@@ -84,8 +83,6 @@ public class GridTile : NetworkBehaviour
         isBlocking = false;
         if (blockCharacter != null)
         {
-
-
             blockCharacter.PlayAnimationIdle();
             blockCharacter = null;
         }

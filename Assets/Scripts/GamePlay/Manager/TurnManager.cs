@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using System;
 using QFSW.QC;
+using Cysharp.Threading.Tasks;
 
 public class TurnManager : NetworkSingleton<TurnManager>
 {
@@ -15,18 +16,13 @@ public class TurnManager : NetworkSingleton<TurnManager>
         public int optionId;
     }
 
-    public event Action OnTurnStart;
-    public event Action OnAllActionsSubmitted;
-    public event Action OnTurnEnd;
-
-    private int currentTurn;
+    public int currentTurn;
     private int totalPlayers;
 
     private List<PlayerAction> defenseActions = new List<PlayerAction>();
     private List<PlayerAction> commonActions = new List<PlayerAction>();
     private List<PlayerAction> offenseActions = new List<PlayerAction>();
 
-    private bool isGameActive = false;
 
     public override void OnNetworkSpawn()
     {
@@ -37,7 +33,6 @@ public class TurnManager : NetworkSingleton<TurnManager>
             Initialize(totalPlayers);
         }
 
-        CameraManager.Instance?.RegisterTurnCallbacks(this);
     }
 
     public void Initialize(int playerCount)
@@ -45,30 +40,32 @@ public class TurnManager : NetworkSingleton<TurnManager>
         if (!IsServer) return;
 
         totalPlayers = playerCount;
-        currentTurn = 1;
-        isGameActive = true;
+        currentTurn = 0;
         
         //StartTurn();
     }
 
-    private void StartTurn()
+    public void StartTurn()
     {
-        if (!isGameActive) return;
+        if (!IsServer) return;
+
+        currentTurn++;
+
         defenseActions.Clear();
         commonActions.Clear();
         offenseActions.Clear();
 
-        GameManager.Instance.ChangeState<MainGameState>();
-        InGameUIManager.Instance.turnText.text = currentTurn.ToString();
-
-        OnTurnStart?.Invoke();
+        StartTurnClientRpc(currentTurn);
+    }
+    [ClientRpc]
+    private void StartTurnClientRpc(int turnNumber)
+    {
+        InGameUIManager.Instance.turnText.text = turnNumber.ToString();
     }
 
     [ServerRpc(RequireOwnership = false)]
     public void SubmitActionServerRpc(ulong playerId, int actionId, Vector2Int targetTilePos, int optionId)
     {
-        if (!isGameActive) return;
-
         GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePos);
         ActionCategory actionCategory = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).category;
 
@@ -100,6 +97,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
 
     private void RemoveExistingAction(ulong playerId)
     {
+        Debug.Log("Remvoe action :" + playerId);
         defenseActions.RemoveAll(a => a.playerId == playerId);
         commonActions.RemoveAll(a => a.playerId == playerId);
         offenseActions.RemoveAll(a => a.playerId == playerId);
@@ -112,24 +110,24 @@ public class TurnManager : NetworkSingleton<TurnManager>
         Debug.Log($"Updating Client State: Player {playerId} executed action {actionId} at {position}");
     }
 
-    public void ExecuteActions()
+    public async UniTask ExecuteActions()
     {
         if (!IsServer) return;
-
-        StartCoroutine(ExecuteActionCoroutine());
+        Debug.Log("액션 실행");
+        await ExecuteActionsAsync();
     }
 
-    private IEnumerator ExecuteActionCoroutine()
+    private async UniTask ExecuteActionsAsync()
     {
-        yield return StartCoroutine(ExecuteActionList(defenseActions));
-        yield return StartCoroutine(ExecuteActionList(commonActions));
-        yield return StartCoroutine(ExecuteActionList(offenseActions));
+        Debug.Log("액션 리스트 실행");
+        await ExecuteActionListAsync(defenseActions);
+        await ExecuteActionListAsync(commonActions);
+        await ExecuteActionListAsync(offenseActions);
 
-        OnAllActionsSubmitted?.Invoke();
-        StartCoroutine(EndTurn());
+        await EndTurnAsync();
     }
 
-    private IEnumerator ExecuteActionList(List<PlayerAction> actionList)
+    private async UniTask ExecuteActionListAsync(List<PlayerAction> actionList)
     {
         actionList.Sort((a, b) =>
         {
@@ -164,28 +162,21 @@ public class TurnManager : NetworkSingleton<TurnManager>
                     occupiedPositions.Add(targetPos);
             }
 
-            yield return new WaitForSeconds(GameConstants.ActionTime);
+            await UniTask.Delay(TimeSpan.FromSeconds(GameConstants.ActionTime));
         }
     }
-
-
-    private IEnumerator EndTurn()
+    private async UniTask EndTurnAsync()
     {
-        yield return new WaitForSeconds(1f);
-        OnTurnEnd?.Invoke();
+        await UniTask.Delay(TimeSpan.FromSeconds(1f));
 
+        Debug.Log("액션 종료");
         NotifyTurnEndClientRpc(currentTurn);
-        if (isGameActive)
-        {
-            currentTurn++;
-            StartTurn();
-        }
     }
 
     [ClientRpc]
     private void NotifyTurnEndClientRpc(int turnNumber)
     {
-        GameManager.Instance.ChangeState<MainGameState>();  // 또는 다음 상태로
+        GameManager.Instance.ChangeState<InitGameState>();  // 또는 다음 상태로
     }
 
     [Command]

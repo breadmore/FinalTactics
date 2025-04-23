@@ -17,17 +17,33 @@ public class BallManager : NetworkSingleton<BallManager>
         NetworkVariableWritePermission.Server
     );
 
+    private NetworkVariable<bool> isBallSpawned = new NetworkVariable<bool>();
+    public bool IsBallSpawned => isBallSpawned.Value;
+
     //[HideInInspector]
     public PlayerCharacter dribbler = null;
 
-    private void Start()
+    private void Awake()
     {
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        isBallSpawned.OnValueChanged += OnIsBallSpawnedChanged;
+
         if (IsServer)
         {
-            TurnManager.Instance.OnTurnStart += TurnStartSetting;
+            isBallSpawned.Value = false;
         }
     }
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+        isBallSpawned.OnValueChanged -= OnIsBallSpawnedChanged;
+    }
+
 
     private void Update()
     {
@@ -39,8 +55,24 @@ public class BallManager : NetworkSingleton<BallManager>
         }
     }
 
+    public void OnIsBallSpawnedChanged(bool oldValue, bool newValue)
+    {
+        // 같은 팀에서 생성 했을 경우
+        if (IsBallSpawned)
+        {
+            ActiveButton(false);
+
+            // 강제 상태 변경
+            if(GameManager.Instance._currentState is CharacterPlacementCompleteState)
+            {
+                GameManager.Instance.ChangeState<ReadyCheckState>();
+            }
+        }
+    }
     public void UpdateSpawnBallButtonState()
     {
+        if (IsBallSpawned) return;
+
         Debug.Log("Att : " + GameManager.Instance.AttackingTeam);
         Debug.Log("My : " + GameManager.Instance.thisPlayerBrain.GetMyTeam());
         if (GameManager.Instance.AttackingTeam == GameManager.Instance.thisPlayerBrain.GetMyTeam())
@@ -57,12 +89,10 @@ public class BallManager : NetworkSingleton<BallManager>
     {
         if (active)
         {
-            spawnBallButton.GetComponent<CanvasGroup>().alpha = 1;
             spawnBallButton.GetComponent<CanvasGroup>().interactable = true;
         }
         else
         {
-            spawnBallButton.GetComponent<CanvasGroup>().alpha = 0;
             spawnBallButton.GetComponent<CanvasGroup>().interactable = false;
         }
     }
@@ -125,6 +155,8 @@ public class BallManager : NetworkSingleton<BallManager>
         spawnedBall.Spawn(true);
         spawnedBall.transform.position = centerPosition;
 
+        isBallSpawned.Value = true;
+
         CurrentTile = gridTile;
 
         if (gridTile.occupyingCharacter != null)
@@ -141,6 +173,7 @@ public class BallManager : NetworkSingleton<BallManager>
 
         spawnedBall.Despawn(false);
         spawnedBall.gameObject.SetActive(false);
+        isBallSpawned.Value = false;
     }
 
     // 서버 전용 메서드: 공 소유자 설정
@@ -245,7 +278,7 @@ public class BallManager : NetworkSingleton<BallManager>
         spawnedBall.transform.position = targetPosition;
     }
 
-    private void TurnStartSetting()
+    public void TurnStartSetting()
     {
         if(!IsServer) return;
         SetBallOwner(CurrentTile.occupyingCharacter);
