@@ -20,7 +20,6 @@ public class InGameUIManager : Singleton<InGameUIManager>
     public ResultPanel resultPanel;
     public PausePanel pausePanel;
     public GameDataPanel gameDataPanel;
-
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -71,7 +70,6 @@ public class InGameUIManager : Singleton<InGameUIManager>
 
     public void CloseAllSlot()
     {
-        Debug.Log("´Ù²¨Á®");
         CharacterSlot.SetActive(false);
         ActionSlot.SetActive(false);
         OptionSlot.gameObject.SetActive(false);

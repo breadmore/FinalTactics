@@ -20,7 +20,6 @@ public class BallManager : NetworkSingleton<BallManager>
     //[HideInInspector]
     public PlayerCharacter dribbler = null;
 
-
     private void Start()
     {
         spawnBallButton.onClick.AddListener(OnClickSpawnBallButton);
@@ -32,13 +31,39 @@ public class BallManager : NetworkSingleton<BallManager>
 
     private void Update()
     {
-        if (!IsServer) return;  // 서버에서만 실행
-
         HandleBallSpawnInput();
 
         if (dribbler != null)
         {
             spawnedBall.transform.position = dribbler.ballPosition.position;
+        }
+    }
+
+    public void UpdateSpawnBallButtonState()
+    {
+        Debug.Log("Att : " + GameManager.Instance.AttackingTeam);
+        Debug.Log("My : " + GameManager.Instance.thisPlayerBrain.GetMyTeam());
+        if (GameManager.Instance.AttackingTeam == GameManager.Instance.thisPlayerBrain.GetMyTeam())
+        {
+            ActiveButton(true);
+        }
+        else
+        {
+            ActiveButton(false);
+        }
+    }
+
+    public void ActiveButton(bool active)
+    {
+        if (active)
+        {
+            spawnBallButton.GetComponent<CanvasGroup>().alpha = 1;
+            spawnBallButton.GetComponent<CanvasGroup>().interactable = true;
+        }
+        else
+        {
+            spawnBallButton.GetComponent<CanvasGroup>().alpha = 0;
+            spawnBallButton.GetComponent<CanvasGroup>().interactable = false;
         }
     }
 
@@ -67,8 +92,6 @@ public class BallManager : NetworkSingleton<BallManager>
 
     public void OnClickSpawnBallButton()
     {
-        if (!IsServer) return;
-
         if(GameManager.Instance._currentState is CharacterPlacementCompleteState)
         {
             GameManager.Instance.ChangeState<BallPlacementState>();
@@ -77,20 +100,30 @@ public class BallManager : NetworkSingleton<BallManager>
 
     public void PreSpawnBall()
     {
-        Debug.Log("Server");
         GameObject obj = Instantiate(ballObjectPrefab);
         spawnedBall = obj.GetComponent<NetworkObject>();
         spawnedBall.gameObject.SetActive(false);
     }
 
+
     public void SpawnBall(GridTile gridTile)
+    {
+        if(gridTile == null) return;
+
+        Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
+
+        RequestBallSpawnServerRpc(tilePosition, gridTile.gridPosition);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestBallSpawnServerRpc(Vector3 centerPosition, Vector2Int gridPosition)
     {
         if (!IsServer) return;
 
-        Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
+        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
         spawnedBall.gameObject.SetActive(true);
         spawnedBall.Spawn(true);
-        spawnedBall.transform.position = tilePosition;
+        spawnedBall.transform.position = centerPosition;
 
         CurrentTile = gridTile;
 

@@ -77,7 +77,8 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
         await RelayManager.Instance.WaitForRelayConnection();
 
         Debug.Log("씬이 활성화됨! UI를 활성화합니다.");
-        GameManager.Instance.ChangeState<CharacterSelectionState>();
+        GameManager.Instance.DecideFirstAttack();
+        GameManager.Instance.ChangeState<PlayerConnectionState>();
     }
 
 

@@ -20,11 +20,14 @@ public class PlayerConnectionState : GameStateBase
     public override void EnterState()
     {
         Debug.Log("Entered PlayerConnectionState");
+        BallManager.Instance.UpdateSpawnBallButtonState();
+        EnterGame();
     }
 
-    public override void ExitState()
+    private void EnterGame()
     {
-        // 캐릭터 배치 하세요 알림
+        GameManager.Instance.ChangeState<CharacterSelectionState>();
+
     }
 }
 
@@ -68,7 +71,17 @@ public class CharacterPlacementCompleteState : GameStateBase
     public override void EnterState()
     {
         Debug.Log("Entered CharacterPlacementCompleteState");
+        CheckAttackTeam();
     }
+
+    private void CheckAttackTeam()
+    {
+        if(GameManager.Instance.AttackingTeam != GameManager.Instance.thisPlayerBrain.GetMyTeam())
+        {
+            GameManager.Instance.ChangeState<ReadyCheckState>();
+        }
+    }
+
 }
 public class BallPlacementState : GameStateBase
 {
@@ -146,6 +159,8 @@ public class MainGameState : GameStateBase
     {
         GameManager.Instance.StartAction();
     }
+
+
 }
 
 
@@ -168,11 +183,6 @@ public class CharacterControlState : GameStateBase
         {
             GameManager.Instance.ChangeState<ActionOptionSelecteState>();
         }
-    }
-
-    public override void ExitState()
-    {
-        //InGameUIManager.Instance.ActionSlot.SetActive(false);
     }
 }
 
@@ -219,6 +229,8 @@ public class ActionExcutionState : GameStateBase
     {
         Debug.Log("Entered ActionExcutionState");
     }
+
+
 }
 
 public class GameResetState : GameStateBase
@@ -236,7 +248,7 @@ public class GameResetState : GameStateBase
         PlayerCharacterNetworkPool.Instance.ReturnAllCharacter();
         BallManager.Instance.DespawnBall();
         GameManager.Instance.ResetAllPlayersReadyState();
-
+        GridManager.Instance.ResetAllGridTile();
         //ExitState();
         ResetEnd();
     }

@@ -2,9 +2,15 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.Splines;
 using System.Collections;
+using TMPro;
+using Unity.Collections;
+using Unity.Services.Authentication;
 
 public class PlayerCharacter : NetworkBehaviour
 {
+    public NetworkVariable<FixedString32Bytes> PlayerNickname = new(writePerm: NetworkVariableWritePermission.Owner);
+    [SerializeField]private TextMeshPro nameUIInstance;
+
     public Transform ballPosition;
     public ParticleSystem clickParticle;
 
@@ -31,10 +37,17 @@ public class PlayerCharacter : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
+
+        PlayerNickname.OnValueChanged += (_, newVal) =>
+        {
+            SetNameTag(newVal.ToString(), true);
+        };
+
+        SetNameTag(PlayerNickname.Value.ToString(), true);
+
+
         characterId.OnValueChanged += OnCharacterIdChanged;
         SetCharacterStat();
-
-
 
         if (IsServer) gridPosition.OnValueChanged += OnGridPositionChanged;
 
@@ -62,6 +75,12 @@ public class PlayerCharacter : NetworkBehaviour
         }
 
 
+    }
+
+    public void SetNameTag(string playerName, bool isMyTeam)
+    {
+        nameUIInstance.text = playerName;
+        nameUIInstance.color = isMyTeam ? Color.green : Color.red;
     }
 
     public void MoveToGridTile(GridTile targetTile)

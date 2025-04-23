@@ -42,11 +42,13 @@ public class PlayerBrain : NetworkBehaviour
         Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
         Vector2Int gridPosition = gridTile.gridPosition;
 
-        SpawnPlayerServerRpc(centerPosition, rotation, gridPosition, characterId, AuthenticationService.Instance.PlayerId);
+        // 닉네임도 같이 전달
+        string nickname = AuthenticationService.Instance.PlayerName;
+        SpawnPlayerServerRpc(centerPosition, rotation, gridPosition, characterId, nickname, AuthenticationService.Instance.PlayerId);
     }
 
     [ServerRpc]
-    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation, Vector2Int gridPosition, int characterId, string playerId, ServerRpcParams rpcParams = default)
+    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation, Vector2Int gridPosition, int characterId,string nickname, string playerId, ServerRpcParams rpcParams = default)
     {
         Debug.Log("Select Id : " + characterId);
         ulong requesterClientId = rpcParams.Receive.SenderClientId;
@@ -61,11 +63,15 @@ public class PlayerBrain : NetworkBehaviour
         }
 
         var character = netObj.GetComponent<PlayerCharacter>();
+
         if (character == null)
         {
             Debug.LogError("네트워크 오브젝트에 PlayerCharacter 컴포넌트가 없습니다.");
             return;
         }
+
+        character.PlayerNickname.Value = nickname;
+        character.SetNameTag(nickname, true);
 
         // 초기화
 
@@ -81,6 +87,9 @@ public class PlayerBrain : NetworkBehaviour
         {
             tile.SetOccupied(character);
         }
+
+
+
 
         // 클라이언트와 동기화
         SyncGridTileClientRpc(gridPosition, netObj.NetworkObjectId);
@@ -111,6 +120,7 @@ public class PlayerBrain : NetworkBehaviour
             playerData.SetReady(isReady);
             Debug.Log($"Player {playerId} ready state updated to: {isReady}");
             UpdateReadyStateClientRpc(playerId, isReady);
+
         }
     }
 
@@ -123,6 +133,7 @@ public class PlayerBrain : NetworkBehaviour
         {
             playerData.SetReady(isReady);
             Debug.Log($"Player {playerId} ready state synced to: {isReady}");
+
         }
     }
 

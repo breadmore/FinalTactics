@@ -79,7 +79,6 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
         selectedChild.gameObject.SetActive(false);
         characterCount++;
         CheckCharacterLimit();
-
     }
 
     private void InitChild(int index)

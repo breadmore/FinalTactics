@@ -73,7 +73,6 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
 
     private void SelectCharacterData()
     {
-        Debug.Log("Selecte!");
         GameManager.Instance.OnCharacterDataSelected(characterData);
         slotParent.selectedChild = this;
     }

@@ -9,6 +9,7 @@ using System.Linq;
 using System;
 using System.Collections;
 using Cysharp.Threading.Tasks;
+using TMPro;
 
 
 public class GameManager : NetworkSingleton<GameManager>
@@ -28,6 +29,9 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public IGameState _currentState;
 
+    private NetworkVariable<TeamName> attackingTeam = new NetworkVariable<TeamName>();
+    public TeamName AttackingTeam => attackingTeam.Value;
+
 
     public void SetCharacterData(CharacterData characterData) => SelectedCharacterData = characterData;
     public void SetGridTile(GridTile gridTile) => SelectedGridTile = gridTile;
@@ -36,10 +40,15 @@ public class GameManager : NetworkSingleton<GameManager>
     public void SetPlayerCharacter(PlayerCharacter playerCharacter) => SelectedPlayerCharacter = playerCharacter;
 
 
-    private void Start()
+    public void DecideFirstAttack()
     {
-        
+        if (!IsServer) return;
+        bool coinResult = CoinToss();
+        attackingTeam.Value = coinResult ? TeamName.TeamA : TeamName.TeamB;
+        Debug.Log($"Attacking team is {AttackingTeam}");
+
     }
+
     public void ChangeState(IGameState newState)
     {
         _currentState?.ExitState();
@@ -119,7 +128,6 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         Debug.Log("Game Started!");
         //TurnManager.Instance.Initialize(PlayerDataDict.Count);
-
         ChangeState<MainGameState>();
     }
 
@@ -133,7 +141,6 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         if (PlayerDataDict.TryGetValue(AuthenticationService.Instance.PlayerId, out var playerData))
         {
-            Debug.Log("Ready!");
             playerData.SetReady(true);
             thisPlayerBrain.UpdateReadyStateServerRpc(playerData.player.Id, true);
             await WaitForAllPlayersReady();
@@ -202,10 +209,12 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public void Goal(TeamName teamName)
     {
+        NotifyGoalClientRpc(teamName);
+
         if (teamName == TeamName.TeamA)
         {
             teamA.score++;
-
+            attackingTeam.Value = TeamName.TeamB;
             if (teamA.score >= 3)
             {
                 // A팀 승리
@@ -215,6 +224,7 @@ public class GameManager : NetworkSingleton<GameManager>
         else
         {
             teamB.score++;
+            attackingTeam.Value = TeamName.TeamA;
             if (teamB.score >= 3)
             {
                 // B팀 승리
@@ -223,11 +233,13 @@ public class GameManager : NetworkSingleton<GameManager>
         }
 
         // 클라이언트에게 골 연출 보여주기
-        NotifyGoalClientRpc(teamName);
+
         SyncScoreClientRpc(teamA.score, teamB.score);
 
-        // 리셋 루틴 시작 (서버만 실행)
+        if(IsServer)
         ResetAfterGoal().Forget();
+
+
     }
 
     private void ReturnAllCharacter()
@@ -255,6 +267,7 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         // 모든 클라이언트 초기화
         ChangeState<CharacterSelectionState>();
+        BallManager.Instance.UpdateSpawnBallButtonState();
     }
 
     [ClientRpc]
@@ -263,10 +276,11 @@ public class GameManager : NetworkSingleton<GameManager>
         InGameUIManager.Instance.UpdateScoreUI(teamAScore, teamBScore);
     }
 
-
-
-
-
+    public bool CoinToss()
+    {
+        int result = UnityEngine.Random.Range(0, 2); // 0 또는 1
+        return result == 0;
+    }
 
 
     // Quantum Console Command
