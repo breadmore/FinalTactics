@@ -29,7 +29,7 @@ public class MoveActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (targetTile.IsOccupied)
+        if (targetTile.IsOccupied())
             return false;
 
         int moveRange = Mathf.Min(player.CharacterStat.speed, player.Stamina);
@@ -71,16 +71,15 @@ public class PassActionHandler : IActionHandler
         }
 
         player.PlayAnimationPass();
-        BallManager.Instance.PassBall(player, targetTile);
+        BallManager.Instance.MoveBall(targetTile);
     }
 }
 public class DribbleActionHandler : IActionHandler
 {
     public bool CanExecute(PlayerCharacter player, GridTile targetTile)
     {
-        if (targetTile.IsOccupied || !BallManager.Instance.IsBallOwnedBy(player))
+        if (targetTile.IsOccupied() || !BallManager.Instance.IsBallOwnedBy(player))
         {
-            // 사람 있을경우
             return false;
         }
 
@@ -104,7 +103,8 @@ public class DribbleActionHandler : IActionHandler
             // 실패 처리 로직 (볼 뺏김 or 제자리 유지)
             player.PlayAnimationTrip();
             player.MoveToGridTile(targetTile);
-            BallManager.Instance.StealBall(targetTile.blockCharacter);
+
+            BallManager.Instance.MoveBall(GridManager.Instance.GetGridTileAtPosition(targetTile.blockCharacter.GridPosition));
             return;
         }
         
@@ -147,9 +147,10 @@ public class TackleActionHandler : IActionHandler
         int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
         var opponent = targetTile.occupyingCharacter;
 
-        return distance <= GameConstants.TackleDistance
-               && opponent != null
-               && BallManager.Instance.IsBallOwnedBy(opponent);
+        if (opponent == null) return false;
+        if (!BallManager.Instance.IsBallOwnedBy(opponent)) return false;
+
+        return distance <= GameConstants.TackleDistance;
     }
 
     public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
@@ -167,25 +168,34 @@ public class TackleActionHandler : IActionHandler
         Debug.Log($"[Tackle] SuccessChance: {successRate}, Rolled: {roll}");
 
 
-
         if (roll < successRate)
         {
-            // 내 타일
-            var playerTile = GridManager.Instance.GetGridTileAtPosition(player.GridPosition);
-
+            // 성공 시
+            Debug.Log($"{player.NetworkObjectId}가 성공적으로 태클하여 {opponent.NetworkObjectId}에게서 공을 빼앗았습니다!");
+            
+            // 애니메이션 재생
             player.PlayAnimationTackle();
+            opponent.PlayAnimationTrip();
 
-            // 위치 변경
-            player.MoveToGridTile(targetTile);
-            // 공 탈취 + 소유권 이동
-            BallManager.Instance.StealBall(player);
-            Debug.Log($"{player.GetCharacterId()} 성공적으로 태클하여 {opponent.GetCharacterId()}에게서 공을 빼앗았습니다!");
+
+
+            // 플레이어 위치 변경
+            var (newTacklerPos, newTargetPos) = GridUtils.TryGetTacklePositions(
+                player.GridPosition,
+                targetTile.gridPosition,
+                GridManager.Instance
+            );
+            player.MoveToGridTile(GridManager.Instance.GetGridTileAtPosition(newTacklerPos));
+            opponent.MoveToGridTile(GridManager.Instance.GetGridTileAtPosition(newTargetPos));
+
+            // 볼 위치 변경
+            BallManager.Instance.MoveBall(GridManager.Instance.GetGridTileAtPosition(player.GridPosition));
         }
         else
         {
-            player.PlayAnimationTrip();
             // 실패 시: 경고 메시지 or 패널티
-            Debug.Log($"{player.GetCharacterId()}의 태클이 실패했습니다!");
+            player.PlayAnimationTrip();
+            Debug.Log($"{player.NetworkObjectId}의 태클이 실패했습니다!");
             // 예: 이동 불가 상태로 만들거나 경고 등
         }
     }
@@ -309,7 +319,7 @@ public class InterceptActionHandler : IActionHandler
             return;
         }
 
-        BallManager.Instance.StealBall(player);
+        
         Debug.Log($"{player.GetCharacterId()} intercepted the ball at {targetTile.gridPosition}.");
     }
 }

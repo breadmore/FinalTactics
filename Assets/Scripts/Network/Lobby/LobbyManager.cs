@@ -26,7 +26,8 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
 
     private string playerName;
     private bool playerReady;
-    private bool playerTeam;
+    // 기본 팀 Red
+    private int playerTeam = 1;
 
     private void OnEnable()
     {
@@ -210,7 +211,7 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
         try
         {
             playerReady = false;
-            playerTeam = false;
+            playerTeam = 1;
             JoinLobbyByCodeOptions joinLobbyByCodeOptions = new JoinLobbyByCodeOptions
             {
                 Player = GetPlayer()
@@ -234,7 +235,7 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
         try
         {
             playerReady = false;
-            playerTeam = false;
+            playerTeam = 1;
             JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions
             {
                 Player = GetPlayer()
@@ -338,7 +339,15 @@ public class LobbyManager : DontDestroySingleton<LobbyManager>
     {
         try
         {
-            playerTeam = !playerTeam;
+            if (playerTeam == 1)
+            {
+                playerTeam = 2;
+            }
+            else if (playerTeam == 2) 
+            {
+                playerTeam = 1;
+            }
+
             await LobbyService.Instance.UpdatePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId, new UpdatePlayerOptions
             {
                 Data = new Dictionary<string, PlayerDataObject>

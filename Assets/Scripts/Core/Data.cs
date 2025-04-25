@@ -1,3 +1,4 @@
+using QFSW.QC;
 using System;
 using System.Collections.Generic;
 using Unity.Services.Lobbies.Models;
@@ -7,16 +8,77 @@ public class PlayerData
     public Player player { get; private set; }
     public TeamName team { get; private set; }
     public bool isReady { get; private set; } = false;
+    public string playerName => GetPlayerName();
 
-    public bool IsInTeamA => player.Data["PlayerTeam"].Value == "False";
+    // 더 직관적인 팀 확인 프로퍼티
+    public bool IsRedTeam => team == TeamName.Red;
+    public bool IsBlueTeam => team == TeamName.Blue;
 
     public PlayerData(Player player)
     {
         this.player = player;
-        team = IsInTeamA ? TeamName.TeamA : TeamName.TeamB;
+        ParseTeamFromLobbyData();
+        ValidateTeamAssignment();
+    }
+    private void ParseTeamFromLobbyData()
+    {
+        try
+        {
+            if (player.Data.TryGetValue("PlayerTeam", out var teamData))
+            {
+                // 더 명확한 팀 구분 방식 (1: Red, 2: Blue)
+                team = teamData.Value switch
+                {
+                    "1" => TeamName.Red,
+                    "2" => TeamName.Blue,
+                    _ => TeamName.None
+                };
+            }
+            else
+            {
+                Debug.LogWarning($"Team data not found for player: {player.Id}");
+                team = TeamName.None;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to parse team data: {e.Message}");
+            team = TeamName.None;
+        }
     }
 
-    public void SetReady(bool state) => isReady = state;
+    private void ValidateTeamAssignment()
+    {
+        if (team == TeamName.None)
+        {
+            // 기본 팀 할당 (또는 랜덤 할당)
+            team = UnityEngine.Random.Range(0, 2) == 0 ? TeamName.Red : TeamName.Blue;
+            Debug.Log($"Assigned random team {team} to player: {player.Id}");
+        }
+    }
+
+    private string GetPlayerName()
+    {
+        return player.Data.TryGetValue("PlayerName", out var nameData)
+               ? nameData.Value
+               : "Unknown";
+    }
+
+    public void SetReady(bool state)
+    {
+        isReady = state;
+        Debug.Log($"Player {playerName} (Team: {team}) ready state: {state}");
+    }
+
+    // Quantum Console용 디버그 메서드
+    [Command]
+    public void DebugPlayerInfo()
+    {
+        Debug.Log($"Player: {playerName}\n" +
+                 $"ID: {player.Id}\n" +
+                 $"Team: {team}\n" +
+                 $"Ready: {isReady}");
+    }
 }
 
 public class PlayerTeam

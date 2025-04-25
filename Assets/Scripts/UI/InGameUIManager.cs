@@ -5,15 +5,15 @@ using UnityEngine.UI;
 
 public class InGameUIManager : Singleton<InGameUIManager>
 {
-    public TextMeshProUGUI goalText;
+    public TextMeshProUGUI AlertText;
     public TextMeshProUGUI turnText;
 
     public TextMeshProUGUI teamAScoreText;
     public TextMeshProUGUI teamBScoreText;
 
     public Button readyButton;
-    public GameObject CharacterSlot;
-    public GameObject ActionSlot;
+    public CharacterSlotParent CharacterSlot;
+    public ActionSlotParent ActionSlot;
     public OptionSlotParent OptionSlot;
 
     [Header("패널 관리")]
@@ -23,7 +23,6 @@ public class InGameUIManager : Singleton<InGameUIManager>
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        CloseAllSlot();
         readyButton.onClick.AddListener(OnReadyButtonClick);
     }
 
@@ -50,15 +49,15 @@ public class InGameUIManager : Singleton<InGameUIManager>
     {
         Debug.Log("Goal!!!!!!!! [" + scoringTeam + "]");
 
-        goalText.text = "GOAL!";
-        goalText.transform.localScale = Vector3.zero;
-        goalText.gameObject.SetActive(true);
+        AlertText.text = "GOAL!";
+        AlertText.transform.localScale = Vector3.zero;
+        AlertText.gameObject.SetActive(true);
 
         Sequence seq = DOTween.Sequence();
-        seq.Append(goalText.transform.DOScale(1.5f, 0.5f).SetEase(Ease.OutBack));
+        seq.Append(AlertText.transform.DOScale(1.5f, 0.5f).SetEase(Ease.OutBack));
         seq.AppendInterval(1.2f); // 유지 시간
-        seq.Append(goalText.transform.DOScale(0f, 0.3f).SetEase(Ease.InBack));
-        seq.OnComplete(() => goalText.gameObject.SetActive(false));
+        seq.Append(AlertText.transform.DOScale(0f, 0.3f).SetEase(Ease.InBack));
+        seq.OnComplete(() => AlertText.gameObject.SetActive(false));
     }
 
 
@@ -68,10 +67,27 @@ public class InGameUIManager : Singleton<InGameUIManager>
         teamBScoreText.text = teamBScore.ToString();
     }
 
+    public void OpenSlotUI()
+    {
+        CloseAllSlot();
+
+        if (GameManager.Instance._currentState is CharacterDataSelectionState)
+        {
+            CharacterSlot.gameObject.SetActive(true);
+        }
+        else if(GameManager.Instance._currentState is CharacterControlState)
+        {
+            ActionSlot.gameObject.SetActive(true);
+        }
+        else if(GameManager.Instance._currentState is ActionOptionSelecteState)
+        {
+            OptionSlot.gameObject.SetActive(true);
+        }
+    }
     public void CloseAllSlot()
     {
-        CharacterSlot.SetActive(false);
-        ActionSlot.SetActive(false);
+        CharacterSlot.gameObject.SetActive(false);
+        ActionSlot.gameObject.SetActive(false);
         OptionSlot.gameObject.SetActive(false);
     }
 }

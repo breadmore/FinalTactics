@@ -49,12 +49,14 @@ public enum TileType
 
 public enum TeamName
 {
-    TeamA,
-    TeamB
+    None =0,
+    Red =1,
+    Blue =2
 }
 
 public enum ActionCategory 
 { 
+    None,
     Common, 
     Offense,
     Defense,
@@ -80,5 +82,5 @@ public static class GameConstants
 
     // ½ºÅÈ °ü·Ã
     public const int BlockDistance = 1;
-    public const int TackleDistance = 1;
+    public const int TackleDistance = 2;
 }

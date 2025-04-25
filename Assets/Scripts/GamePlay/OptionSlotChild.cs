@@ -27,7 +27,6 @@ public class OptionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
 
     public void OnOptionSelected() 
     {
-        Debug.Log("Option : " + ActionOptionData.name);
         GameManager.Instance.OnActionOptionSelected(ActionOptionData);
     }
     public void SetOption(ActionOptionData actionOptionData)

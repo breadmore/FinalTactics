@@ -1,4 +1,5 @@
-﻿using QFSW.QC;
+﻿using Cysharp.Threading.Tasks;
+using QFSW.QC;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using UnityEngine;
@@ -6,108 +7,124 @@ using UnityEngine;
 public class PlayerBrain : NetworkBehaviour
 {
     private PlayerData thisPlayerData;
+    private bool isInitialized = false;
 
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
         {
             GameManager.Instance.thisPlayerBrain = this;
-
+            InitializePlayer();
         }
     }
 
-    private void Update()
+    private async void InitializePlayer()
     {
-        if (!IsOwner) return;
-    }
+        if (isInitialized) return;
 
-    private void Start()
-    {
-        if (GameManager.Instance.PlayerDataDict.TryGetValue(AuthenticationService.Instance.PlayerId, out thisPlayerData))
+        // PlayerDataDict가 비어있으면 로드 시도
+        if (GameManager.Instance.PlayerDataDict.Count == 0)
         {
-            Debug.Log($"Player {thisPlayerData.player.Data["PlayerName"].Value} assigned to team {thisPlayerData.team}");
-
-            CameraManager.Instance.SetInitialCameraPosition(thisPlayerData.team);
+            await UniTask.WaitUntil(() => GameManager.Instance.PlayerDataDict.Count > 0);
         }
-        
-    
+
+        string playerId = AuthenticationService.Instance.PlayerId;
+        Debug.Log($"Trying to initialize player: {playerId}");
+
+        if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out thisPlayerData))
+        {
+            Debug.Log($"Player initialized: {thisPlayerData.player.Data["PlayerName"].Value}, Team: {thisPlayerData.team}");
+            CameraManager.Instance.SetInitialCameraPosition(thisPlayerData.team);
+            isInitialized = true;
+        }
+        else
+        {
+            Debug.LogError($"Player data not found for ID: {playerId}");
+            Debug.Log($"Available IDs: {string.Join(", ", GameManager.Instance.PlayerDataDict.Keys)}");
+        }
     }
 
     public void SpawnPlayer(GridTile gridTile)
     {
-        if (!IsOwner || gridTile == null) return;
+        if (!IsOwner || gridTile == null || !isInitialized) return;
+
 
         int characterId = GameManager.Instance.SelectedCharacterData.id;
         Vector3 centerPosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
-        Quaternion rotation = thisPlayerData.IsInTeamA ? Quaternion.Euler(0, -90, 0) : Quaternion.Euler(0, 90, 0);
-        Vector2Int gridPosition = gridTile.gridPosition;
-
-        // 닉네임도 같이 전달
+        Quaternion rotation = thisPlayerData.IsRedTeam ? Quaternion.Euler(0, 90, 0) : Quaternion.Euler(0, -90, 0);
+        Vector2Int gridPos = gridTile.gridPosition;
         string nickname = AuthenticationService.Instance.PlayerName;
-        SpawnPlayerServerRpc(centerPosition, rotation, gridPosition, characterId, nickname, AuthenticationService.Instance.PlayerId);
+
+        Debug.Log("Spawn Id : "+characterId);
+
+        SpawnPlayerServerRpc(
+            centerPosition,
+            rotation,
+            gridPos,
+            characterId,
+            nickname,
+            AuthenticationService.Instance.PlayerId
+        );
     }
 
     [ServerRpc]
-    private void SpawnPlayerServerRpc(Vector3 position, Quaternion rotation, Vector2Int gridPosition, int characterId,string nickname, string playerId, ServerRpcParams rpcParams = default)
+    private void SpawnPlayerServerRpc(
+        Vector3 position,
+        Quaternion rotation,
+        Vector2Int gridPosition,
+        int characterId,
+        string nickname,
+        string playerId,
+        ServerRpcParams rpcParams = default)
     {
-        Debug.Log("Select Id : " + characterId);
+
         ulong requesterClientId = rpcParams.Receive.SenderClientId;
 
-        // 풀에서 꺼내기
+        // 풀에서 캐릭터 가져오기
         var netObj = PlayerCharacterNetworkPool.Instance.GetCharacter(position, rotation);
-        PlayerCharacterNetworkPool.Instance.activeCharacters.Add(netObj);
         if (netObj == null)
         {
-            Debug.LogError("캐릭터 풀에서 꺼내기 실패");
+            Debug.LogError("Failed to get character from pool");
             return;
         }
 
         var character = netObj.GetComponent<PlayerCharacter>();
-
         if (character == null)
         {
-            Debug.LogError("네트워크 오브젝트에 PlayerCharacter 컴포넌트가 없습니다.");
+            Debug.LogError("PlayerCharacter component missing");
             return;
         }
 
-        character.PlayerNickname.Value = nickname;
-        character.SetNameTag(nickname, true);
-
-        // 초기화
-
-        // 스폰 및 소유권 변경
+        // 스폰 및 초기화
         netObj.Spawn(true);
         netObj.ChangeOwnership(requesterClientId);
+        //netObj.SpawnWithOwnership(requesterClientId);
+        Debug.Assert(character.gameObject.activeSelf, "Character not active!");
 
-        var playerData = GameManager.Instance.PlayerDataDict[playerId];
-        character.Initialize(characterId,playerData.team, gridPosition);
-        // 그리드 설정
-        GridTile tile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
-        if (tile != null)
+        // 플레이어 데이터 가져오기
+        if (!GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
-            tile.SetOccupied(character);
+            Debug.LogError($"Player data not found for ID: {playerId}");
+            return;
         }
 
+        // 닉네임 설정
+        //SetPlayerNicknameClientRpc(netObj.NetworkObjectId, nickname, requesterClientId);
 
-
-
-        // 클라이언트와 동기화
-        SyncGridTileClientRpc(gridPosition, netObj.NetworkObjectId);
+        // 캐릭터 초기화
+        character.Initialize(characterId, nickname,playerData.team, gridPosition);
     }
 
     [ClientRpc]
-    private void SyncGridTileClientRpc(Vector2Int gridPosition, ulong networkObjectId)
+    private void SetPlayerNicknameClientRpc(ulong networkObjectId, string nickname, ulong ownerClientId)
     {
-        if (IsHost) return; // 서버에서는 실행하지 않음
-
-        GridTile gridTile = GridManager.Instance.GetGridTileAtPosition(gridPosition);
-        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject obj))
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+            networkObjectId, out var netObj))
         {
-            PlayerCharacter playerCharacter = obj.GetComponent<PlayerCharacter>();
-            if (playerCharacter != null)
+            var character = netObj.GetComponent<PlayerCharacter>();
+            if (character != null && netObj.OwnerClientId == ownerClientId)
             {
-                gridTile.SetOccupied(playerCharacter);
-                //Debug.Log($"[Client] GridTile 동기화 완료: {gridPosition}");
+                character.PlayerNickname.Value = nickname;
             }
         }
     }
@@ -118,22 +135,16 @@ public class PlayerBrain : NetworkBehaviour
         if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
             playerData.SetReady(isReady);
-            //Debug.Log($"Player {playerId} ready state updated to: {isReady}");
             UpdateReadyStateClientRpc(playerId, isReady);
-
         }
     }
 
     [ClientRpc]
     private void UpdateReadyStateClientRpc(string playerId, bool isReady)
     {
-        if (IsHost) return;
-
-        if (GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
+        if (!IsHost && GameManager.Instance.PlayerDataDict.TryGetValue(playerId, out var playerData))
         {
             playerData.SetReady(isReady);
-            //Debug.Log($"Player {playerId} ready state synced to: {isReady}");
-
         }
     }
 
@@ -141,13 +152,4 @@ public class PlayerBrain : NetworkBehaviour
     {
         return thisPlayerData.team;
     }
-
-    [Command]
-    public void ShowTeam()
-    {
-        Debug.Log(thisPlayerData.team.ToString());
-    }
-
-   
 }
-

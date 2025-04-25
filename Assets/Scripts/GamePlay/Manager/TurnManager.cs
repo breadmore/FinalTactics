@@ -23,6 +23,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
     private List<PlayerAction> commonActions = new List<PlayerAction>();
     private List<PlayerAction> offenseActions = new List<PlayerAction>();
 
+    public bool IsActiveGame = false;
 
     public override void OnNetworkSpawn()
     {
@@ -42,10 +43,9 @@ public class TurnManager : NetworkSingleton<TurnManager>
         totalPlayers = playerCount;
         currentTurn = 0;
         
-        //StartTurn();
     }
 
-    public void StartTurn()
+    public void NextTurn()
     {
         if (!IsServer) return;
 

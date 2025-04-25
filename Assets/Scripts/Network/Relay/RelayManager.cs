@@ -105,13 +105,8 @@ public async Task ConnectRelay()
         // 클라이언트가 모두 연결될 때까지 대기
         while (NetworkManager.Singleton.ConnectedClients.Count < LobbyManager.Instance.GetJoinedLobby().Players.Count)
         {
-            //Debug.Log("wait other players...");
-            //Debug.Log("Currunt Code : " + currentRelayCode);
-            //Debug.Log("Server Code : " + LobbyManager.Instance.GetJoinedLobby().Data["RelayCode"].Value);
             await Task.Delay(500); // 500ms마다 확인
         }
-
-        Debug.Log("All players connected to Relay.");
         LoadingManager.Instance.isLoading = false;
     }
 

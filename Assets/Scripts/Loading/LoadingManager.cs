@@ -70,14 +70,12 @@ public class LoadingManager : DontDestroySingleton<LoadingManager>
     {
         // Main 씬의 초기화 작업 (예: 네트워크 연결, UI 설정 등)
         await GameManager.Instance.LoadPlayers();
-        //GameManager.Instance.AssignTeams();
         Debug.Log("플레이어 로드 작업 완료");
 
         // Relay 연결이 완료될 때까지 기다리기
         await RelayManager.Instance.WaitForRelayConnection();
 
         Debug.Log("씬이 활성화됨! UI를 활성화합니다.");
-
         GameManager.Instance.ChangeState<PlayerConnectionState>();
     }
 

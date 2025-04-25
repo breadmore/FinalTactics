@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -6,11 +7,7 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 {
     private int characterCount = 0;
     public CharacterSlotChild selectedChild;
-
-    private void OnEnable()
-    {
-        characterCount = 0;
-    }
+    public Action spawnAction;
 
     private void Start()
     {
@@ -68,15 +65,30 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
         if (!gridTile.CanPlaceCharacter()) return;
 
+        PlayerCharacter.OnSpawned += HandleCharacterSpawned;
         GameManager.Instance.thisPlayerBrain.SpawnPlayer(gridTile);
-        OnCharacterSpawnSuccess();
+
         
     }
 
-    private void OnCharacterSpawnSuccess()
+    public void RegisterSpawnCallback(Action callback)
     {
+        spawnAction = callback;
+    }
+
+    private void HandleCharacterSpawned(PlayerCharacter character)
+    {
+        PlayerCharacter.OnSpawned -= HandleCharacterSpawned;
+        OnCharacterSpawnSuccess();
+    }
+
+    public void OnCharacterSpawnSuccess()
+    {
+        Debug.Log("Character Spawn!");
+
         selectedChild.gameObject.SetActive(false);
         characterCount++;
+        GameManager.Instance.ClearAllSelected();
         CheckCharacterLimit();
     }
 
@@ -98,10 +110,17 @@ public class CharacterSlotParent : BaseLayoutGroupParent<CharacterSlotChild>
 
     private void CheckCharacterLimit()
     {
+        Debug.Log("character count : " + characterCount);
         if (characterCount >= GameConstants.MaxCharacterCount)
         {
-            InGameUIManager.Instance.CharacterSlot.SetActive(false);
+            InGameUIManager.Instance.CloseAllSlot();
             GameManager.Instance.ChangeState<CharacterPlacementCompleteState>();
+
+            characterCount = 0;
+        }
+        else
+        {
+            GameManager.Instance.ChangeState<CharacterDataSelectionState>();
         }
     }
 }

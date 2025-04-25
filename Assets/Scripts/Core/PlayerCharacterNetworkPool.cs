@@ -12,20 +12,17 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
     public List<NetworkObject> activeCharacters = new();
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-        {
-            PrewarmPool();
-            BallManager.Instance.PreSpawnBall();
-        }
+        InitializePool();
+        BallManager.Instance.PreSpawnBall();
 
         NetworkManager.Singleton.PrefabHandler.AddHandler(characterPrefab, new GenericPrefabHandler(this));
     }
 
-    private void PrewarmPool()
+    private void InitializePool()
     {
         for (int i = 0; i < maxCharacterCount; i++)
         {
-            GameObject obj = Instantiate(characterPrefab);
+            GameObject obj = Instantiate(characterPrefab, transform);
             var networkObj = obj.GetComponent<NetworkObject>();
             networkObj.gameObject.SetActive(false);
             pooledCharacters.Enqueue(networkObj);
@@ -64,7 +61,7 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
 
         pooledCharacters.Enqueue(character);
     }
-    public void ReturnAllCharacter()
+    public void ReturnAllCharacters()
     {
         foreach (var character in activeCharacters.ToList())
         {

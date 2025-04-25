@@ -1,4 +1,5 @@
-﻿using QFSW.QC;
+﻿using Cysharp.Threading.Tasks;
+using QFSW.QC;
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,13 +10,8 @@ public class BallManager : NetworkSingleton<BallManager>
     public GameObject ballObjectPrefab;
     public NetworkObject spawnedBall;
     public Button spawnBallButton;
-    public GridTile CurrentTile { get; private set; }
-
-    private NetworkVariable<ulong> BallOwnerNetworkId = new NetworkVariable<ulong>(
-        0,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    public Vector2Int CurrentTileGridPosition { get; private set; }
+    public ulong BallOwnerNetworkId { get; private set; } = 0;
 
     private NetworkVariable<bool> isBallSpawned = new NetworkVariable<bool>();
     public bool IsBallSpawned => isBallSpawned.Value;
@@ -72,9 +68,6 @@ public class BallManager : NetworkSingleton<BallManager>
     public void UpdateSpawnBallButtonState()
     {
         if (IsBallSpawned) return;
-
-        Debug.Log("Att : " + GameManager.Instance.AttackingTeam);
-        Debug.Log("My : " + GameManager.Instance.thisPlayerBrain.GetMyTeam());
         if (GameManager.Instance.AttackingTeam == GameManager.Instance.thisPlayerBrain.GetMyTeam())
         {
             ActiveButton(true);
@@ -90,10 +83,12 @@ public class BallManager : NetworkSingleton<BallManager>
         if (active)
         {
             spawnBallButton.GetComponent<CanvasGroup>().interactable = true;
+            spawnBallButton.GetComponent<CanvasGroup>().alpha = 1;
         }
         else
         {
             spawnBallButton.GetComponent<CanvasGroup>().interactable = false;
+            spawnBallButton.GetComponent<CanvasGroup>().alpha = 0;
         }
     }
 
@@ -139,9 +134,7 @@ public class BallManager : NetworkSingleton<BallManager>
     public void SpawnBall(GridTile gridTile)
     {
         if(gridTile == null) return;
-
         Vector3 tilePosition = GridManager.Instance.GetNearestGridCenter(gridTile.transform.position);
-
         RequestBallSpawnServerRpc(tilePosition, gridTile.gridPosition);
     }
 
@@ -157,109 +150,82 @@ public class BallManager : NetworkSingleton<BallManager>
 
         isBallSpawned.Value = true;
 
-        CurrentTile = gridTile;
-
-        if (gridTile.occupyingCharacter != null)
-        {
-            SetBallOwner(gridTile.occupyingCharacter);
-        }
+        SetBallOwnerClientRpc(0);
+        SetBallPositionClientRpc(gridTile.gridPosition);
     }
 
     public void DespawnBall() 
     {
-        if (!IsServer) return;
-        BallOwnerNetworkId.Value = 0;
-        CurrentTile = null;
+        if (IsServer)
+        {
+            spawnedBall.Despawn(false);
+            spawnedBall.gameObject.SetActive(false);
+            isBallSpawned.Value = false;
+        }
 
-        spawnedBall.Despawn(false);
-        spawnedBall.gameObject.SetActive(false);
-        isBallSpawned.Value = false;
+        SetBallOwnerClientRpc(0);
+
     }
+
 
     // 서버 전용 메서드: 공 소유자 설정
-    public void SetBallOwner(PlayerCharacter playerCharacter)
+    [ClientRpc]
+    public void SetBallOwnerClientRpc(ulong networkId)
     {
-        if (!IsServer || playerCharacter == null) return;
-
-        BallOwnerNetworkId.Value = playerCharacter.NetworkObjectId;
-        spawnedBall.transform.position = playerCharacter.ballPosition.position;
-    }
-
-    // 서버 전용 메서드: 공 이동
-    public void MoveBall(GridTile targetTile)
-    {
-        if (!IsServer) return;
-
-        CurrentTile = targetTile;
-        BallOwnerNetworkId.Value = 0;  // 소유권 해제
-        StartCoroutine(SmoothMoveCoroutine(GridManager.Instance.GetNearestGridCenter(targetTile.transform.position)));
-
-        if (targetTile.occupyingCharacter != null)
+        if(networkId == 0)
         {
-            SetBallOwner(targetTile.occupyingCharacter);
+            BallOwnerNetworkId = 0;
+            spawnedBall.transform.position = Vector3.zero;
+            return;
+        }
+
+        BallOwnerNetworkId = networkId;
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkId, out NetworkObject obj))
+        {
+            spawnedBall.transform.position = obj.GetComponent<PlayerCharacter>().ballPosition.transform.position;
+
         }
     }
 
+    [ClientRpc]
+    public void SetBallPositionClientRpc(Vector2Int tilePosition)
+    {
+        CurrentTileGridPosition = tilePosition;
+    }
+
+    // 서버 전용 메서드: 공 이동
+    public async void MoveBall(GridTile targetTile)
+    {
+        await SmoothMoveAsync(GridManager.Instance.GetNearestGridCenter(targetTile.transform.position));
+        SetBallPositionClientRpc(targetTile.gridPosition);
+    }    
+
+
     public void DribbleBall(GridTile targetTile, PlayerCharacter dribbler)
     {
-        if (!IsServer) return;
-
-        if (dribbler.NetworkObjectId != BallOwnerNetworkId.Value)
+        if (dribbler.NetworkObjectId != BallOwnerNetworkId)
         {
             return;
         }
 
         this.dribbler = dribbler;
-        SetBallOwner(dribbler);
-        CurrentTile = targetTile;
-    }
-
-    // 서버 전용 메서드: 패스
-    public void PassBall(PlayerCharacter passer, GridTile targetTile)
-    {
-        if (!IsServer) return;
-        if (BallOwnerNetworkId.Value != passer.NetworkObjectId)
-        {
-            Debug.LogWarning("Cannot pass: player doesn't have the ball.");
-            return;
-        }
-
-
-
-        MoveBall(targetTile);
-
-    }
-
-    // 서버 전용 메서드: 탈취
-    public void StealBall(PlayerCharacter stealer)
-    {
-        if (!IsServer) return;
-
-        SetBallOwner(stealer);
-        //MoveBall(GridManager.Instance.GetGridTileAtPosition(stealer.GridPosition));
+        SetBallPositionClientRpc(targetTile.gridPosition);
     }
 
     // 클라이언트 전용 확인 함수들 (읽기만 허용)
     public bool IsBallAtTile(GridTile tile)
     {
-        return CurrentTile == tile;
+        return CurrentTileGridPosition == tile.gridPosition;
     }
 
     public bool IsBallOwnedBy(PlayerCharacter player)
     {
-        return BallOwnerNetworkId.Value == player.NetworkObjectId;
+        if(player == null) return false;
+        return BallOwnerNetworkId == player.NetworkObjectId;
     }
 
 
-    public void ResetBallPosition()
-    {
-        Vector2Int gridPosition = new Vector2Int(7, 4);
-        // 볼 위치 중앙 초기화
-
-        MoveBall(GridManager.Instance.GetGridTileAtPosition(gridPosition));
-    }
-
-    private IEnumerator SmoothMoveCoroutine(Vector3 targetPosition)
+    private async UniTask SmoothMoveAsync(Vector3 targetPosition)
     {
         float duration = 0.8f; // 이동 시간
         float elapsed = 0f;
@@ -272,21 +238,42 @@ public class BallManager : NetworkSingleton<BallManager>
             float t = elapsed / duration;
 
             spawnedBall.transform.position = Vector3.Lerp(startPos, targetPosition, t);
-            yield return null;
+            await UniTask.Yield();
         }
 
         spawnedBall.transform.position = targetPosition;
     }
 
-    public void TurnStartSetting()
+    public void SetBallOwner()
     {
-        if(!IsServer) return;
-        SetBallOwner(CurrentTile.occupyingCharacter);
+        if (!IsServer) return;
+        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(CurrentTileGridPosition);
+
+        if(targetTile == null || targetTile.occupyingCharacter == null) return;
+        SetBallOwnerClientRpc(targetTile.occupyingCharacter.NetworkObjectId);
     }
 
     [Command]
     public void BallOwn()
     {
-        Debug.Log(BallOwnerNetworkId.Value);
+        Debug.Log(BallOwnerNetworkId);
+    }
+
+    [Command]
+    public void BallInfo()
+    {
+        Debug.Log("Owner : " + BallOwnerNetworkId);
+        Debug.Log("Position : " + CurrentTileGridPosition);
+    }
+
+    [Command]
+    public void TestBall()
+    {
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(BallOwnerNetworkId, out NetworkObject obj))
+        {
+            spawnedBall.transform.position = obj.GetComponent<PlayerCharacter>().ballPosition.transform.position;
+            Debug.Log("obj position" + obj.GetComponent<PlayerCharacter>().ballPosition.transform.position);
+            Debug.Log("ball position" + spawnedBall.transform.position);
+        }
     }
 }

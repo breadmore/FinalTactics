@@ -7,7 +7,7 @@ public class ResultPanel : BaseAnimatedPanel
     public void ShowResult()
     {
         // 결과 텍스트 세팅
-        scoreText.text = GameManager.Instance.teamA.score + " - " + GameManager.Instance.teamB.score;
+        scoreText.text = GameManager.Instance.teamRed.score + " - " + GameManager.Instance.teamBlue.score;
         Show();
     }
 }

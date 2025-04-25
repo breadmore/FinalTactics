@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
+using JetBrains.Annotations;
+using Unity.VisualScripting;
 
 public static class GridUtils
 {
@@ -42,6 +44,32 @@ public static class GridUtils
         return Mathf.Clamp01(baseChance + bonus);
     }
 
+    public static (Vector2Int tacklerNewPos, Vector2Int targetNewPos) TryGetTacklePositions(
+        Vector2Int tacklerPos,
+        Vector2Int targetPos,
+        GridManager gridManager)
+    {
+        Vector2Int knockbackDir = targetPos - tacklerPos;
+        Vector2Int knockbackTargetPos = targetPos + knockbackDir;
+
+        bool isInsideBounds = knockbackTargetPos.x >= 0 && knockbackTargetPos.x < GameConstants.GRID_SIZE.x
+                              && knockbackTargetPos.y >= 0 && knockbackTargetPos.y < GameConstants.GRID_SIZE.y;
+
+        GridTile knockbackTile = gridManager.GetGridTileAtPosition(knockbackTargetPos);
+        bool isBlocked = knockbackTile == null || knockbackTile.IsOccupied();
+
+        if (isInsideBounds && !isBlocked)
+        {
+            // 밀려날 위치가 유효하면 태클러는 타겟 자리로, 타겟은 밀려남
+            return (targetPos, knockbackTargetPos);
+        }
+        else
+        {
+            // 그렇지 않으면 둘이 자리만 교환
+            return (targetPos, tacklerPos);
+        }
+    }
+
     // 슛 성공 확률 (차지 보너스 반영)
     public static ShootResult GetShootSuccessProbability(PlayerCharacter shooter, int distance, int chargeLevel = 0)
     {
@@ -64,6 +92,8 @@ public static class GridUtils
             successRate: isCritical ? Mathf.Min(successRate * 1.5f, 0.95f) : successRate,
             isCritical: isCritical
         );
+
+        
     }
 
     public readonly struct ShootResult
@@ -135,8 +165,8 @@ public class GridManager : NetworkSingleton<GridManager>
             {
                 gridTile.SetTileType(TileType.GoalkeeperZone);
             }
-            else if ((teamName == TeamName.TeamA && position.x < GameConstants.GRID_SIZE.x/2) ||
-                     (teamName == TeamName.TeamB && position.x >= GameConstants.GRID_SIZE.x/2))
+            else if ((teamName == TeamName.Red && position.x < GameConstants.GRID_SIZE.x/2) ||
+                     (teamName == TeamName.Blue && position.x >= GameConstants.GRID_SIZE.x/2))
             {
                 gridTile.SetTileType(TileType.SpawnZone);
             }
@@ -192,7 +222,7 @@ public class GridManager : NetworkSingleton<GridManager>
     {
         foreach (var tile in gridTileList) // gridTiles는 현재 게임 내 모든 GridTile을 관리하는 리스트
         {
-            if (tile.IsOccupied && tile.occupyingCharacter.NetworkObjectId == networkId)
+            if (tile.IsOccupied() && tile.occupyingCharacter.NetworkObjectId == networkId)
             {
                 return tile.occupyingCharacter;
             }

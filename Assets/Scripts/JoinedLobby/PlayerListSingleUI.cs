@@ -21,9 +21,16 @@ public class PlayerListSingleUI : MonoBehaviour
         SetPlayerTeamCheck(TeamCheck());
     }
 
-    public void SetPlayerTeamCheck(bool team)
+    public void SetPlayerTeamCheck(int team)
     {
-        gameTeamText.text = team ? "BÆÀ" : "AÆÀ";
+        if (team == 1)
+        {
+            gameTeamText.text = TeamName.Red.ToString();
+        }
+        else if (team == 2) 
+        {
+            gameTeamText.text = TeamName.Blue.ToString();
+        }
     }
 
     public void SetPlayerReadyCheck(bool ready)
@@ -31,12 +38,12 @@ public class PlayerListSingleUI : MonoBehaviour
         readyImage.sprite = ready ? readyAgreeSprite : readyDisagreeSprite;
     }
 
-    public bool TeamCheck()
+    public int TeamCheck()
     {
-        bool _team = false;
+        int _team = 0;
         if (player.Data.TryGetValue("PlayerTeam", out PlayerDataObject teamData))
         {
-            bool.TryParse(teamData.Value, out _team);
+            int.TryParse(teamData.Value, out _team);
         }
 
         return _team;

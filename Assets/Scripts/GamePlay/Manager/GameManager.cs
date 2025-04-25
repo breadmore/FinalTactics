@@ -15,8 +15,8 @@ using TMPro;
 public class GameManager : NetworkSingleton<GameManager>
 {
     public Dictionary<string, PlayerData> PlayerDataDict { get; private set; } = new();
-    public PlayerTeam teamA { get; private set; } = new(TeamName.TeamA);
-    public PlayerTeam teamB { get; private set; } = new(TeamName.TeamB);
+    public PlayerTeam teamRed { get; private set; } = new(TeamName.Red);
+    public PlayerTeam teamBlue { get; private set; } = new(TeamName.Blue);
 
 
     public GridTile SelectedGridTile { get; private set; } = null;
@@ -65,7 +65,7 @@ public class GameManager : NetworkSingleton<GameManager>
         if (IsServer)
         {
             bool coinResult = CoinToss();
-            attackingTeam.Value = coinResult ? TeamName.TeamA : TeamName.TeamB;
+            attackingTeam.Value = coinResult ? TeamName.Red : TeamName.Blue;
             Debug.Log($"Attacking team is {AttackingTeam}");
         }
     }
@@ -91,7 +91,7 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public void SetTeamCamera()
     {
-        if (thisPlayerBrain.GetMyTeam() == TeamName.TeamB)
+        if (thisPlayerBrain.GetMyTeam() == TeamName.Blue)
         {
             CameraManager.Instance.cinemachineCamera.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
         }
@@ -117,35 +117,44 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public async Task LoadPlayers()
     {
-        var lobby = LobbyManager.Instance.GetJoinedLobby();
-        if (lobby != null)
+        try
         {
+            var lobby = LobbyManager.Instance.GetJoinedLobby();
+            if (lobby == null)
+            {
+                Debug.LogError("Lobby is null!");
+                return;
+            }
+
             await RelayManager.Instance.ConnectRelay();
 
             PlayerDataDict.Clear();
             foreach (var player in lobby.Players)
+            {
+                Debug.Log($"Loading player: {player.Id}, Name: {player.Data["PlayerName"].Value}");
                 PlayerDataDict[player.Id] = new PlayerData(player);
+            }
 
             AssignTeams();
-            Debug.Log($"Loaded {PlayerDataDict.Count} players from the lobby.");
+            Debug.Log($"Successfully loaded {PlayerDataDict.Count} players");
         }
-        else
+        catch (Exception e)
         {
-            Debug.LogWarning("No lobby found, players not loaded.");
+            Debug.LogError($"LoadPlayers failed: {e}");
         }
     }
 
     private void AssignTeams()
     {
-        teamA = new PlayerTeam(TeamName.TeamA);
-        teamB = new PlayerTeam(TeamName.TeamB);
+        teamRed = new PlayerTeam(TeamName.Red);
+        teamBlue = new PlayerTeam(TeamName.Blue);
 
         foreach (var playerData in PlayerDataDict.Values)
         {
-            if (playerData.IsInTeamA)
-                teamA.Players.Add(playerData);
+            if (playerData.IsRedTeam)
+                teamRed.Players.Add(playerData);
             else
-                teamB.Players.Add(playerData);
+                teamBlue.Players.Add(playerData);
         }
     }
 
@@ -200,7 +209,7 @@ public class GameManager : NetworkSingleton<GameManager>
             await Task.Delay(500);
         }
 
-        return (player.Data["PlayerTeam"].Value != "False") ? TeamName.TeamB : TeamName.TeamA;
+        return (player.Data["PlayerTeam"].Value != "1") ? TeamName.Red : TeamName.Blue;
     }
 
 
@@ -234,11 +243,11 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         NotifyGoalClientRpc(teamName);
 
-        if (teamName == TeamName.TeamA)
+        if (teamName == TeamName.Red)
         {
-            teamA.score++;
-            attackingTeam.Value = TeamName.TeamB;
-            if (teamA.score >= 3)
+            teamRed.score++;
+            attackingTeam.Value = TeamName.Blue;
+            if (teamRed.score >= 3)
             {
                 // A팀 승리
                 InGameUIManager.Instance.resultPanel.ShowResult();
@@ -246,9 +255,9 @@ public class GameManager : NetworkSingleton<GameManager>
         }
         else
         {
-            teamB.score++;
-            attackingTeam.Value = TeamName.TeamA;
-            if (teamB.score >= 3)
+            teamBlue.score++;
+            attackingTeam.Value = TeamName.Red;
+            if (teamBlue.score >= 3)
             {
                 // B팀 승리
                 InGameUIManager.Instance.resultPanel.ShowResult();
@@ -257,7 +266,7 @@ public class GameManager : NetworkSingleton<GameManager>
 
         // 클라이언트에게 골 연출 보여주기
 
-        SyncScoreClientRpc(teamA.score, teamB.score);
+        SyncScoreClientRpc(teamRed.score, teamBlue.score);
 
         if(IsServer)
         ResetAfterGoal().Forget();
@@ -267,7 +276,7 @@ public class GameManager : NetworkSingleton<GameManager>
 
     private void ReturnAllCharacter()
     {
-        PlayerCharacterNetworkPool.Instance.ReturnAllCharacter();
+        PlayerCharacterNetworkPool.Instance.ReturnAllCharacters();
 
         Debug.Log("All characters returned to pool.");
     }
@@ -343,10 +352,23 @@ public class GameManager : NetworkSingleton<GameManager>
     [Command]
     public void ShowScore()
     {
-        Debug.Log("A Team score : " + teamA.score);
+        Debug.Log("A Team score : " + teamRed.score);
 
-        Debug.Log("B Team score : " + teamB.score);
+        Debug.Log("B Team score : " + teamBlue.score);
     }
 
+    [Command]
+    public void CheckAuthStatus()
+    {
+        Debug.Log($"IsAuthenticated: {AuthenticationService.Instance.IsSignedIn}");
+        Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
+        Debug.Log($"PlayerName: {AuthenticationService.Instance.PlayerName}");
+    }
 
+    [Command]
+    public void ShowAllTeam()
+    {
+        Debug.Log("Team Red : " + teamRed.Players.Count);
+        Debug.Log("Team Blue : " + teamBlue.Players.Count);
+    }
 }

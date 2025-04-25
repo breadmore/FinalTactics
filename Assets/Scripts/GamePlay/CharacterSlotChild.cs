@@ -27,10 +27,6 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
         base.Start();
         button.onClick.AddListener(SelectCharacterData);
     }
-    public void PrintCharacterData()
-    {
-        Debug.Log(characterData.characterStat.shoot);
-    }
 
     public void CallParentMethod()
     {
@@ -73,6 +69,7 @@ public class CharacterSlotChild : BaseLayoutGroupChild<CharacterSlotChild>
 
     private void SelectCharacterData()
     {
+        Debug.Log(characterData.id);
         GameManager.Instance.OnCharacterDataSelected(characterData);
         slotParent.selectedChild = this;
     }

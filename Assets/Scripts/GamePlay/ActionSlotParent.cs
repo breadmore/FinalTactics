@@ -105,6 +105,7 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
                 continue;
             }
 
+            bool isNone = actionData.category == ActionCategory.None;
             bool isCommon = actionData.category == ActionCategory.Common;
             bool isOffensive = actionData.category == ActionCategory.Offense;
             bool isDefensive = actionData.category == ActionCategory.Defense;
@@ -113,12 +114,12 @@ public class ActionSlotParent : BaseLayoutGroupParent<ActionSlotChild>
             if (hasBall)
             {
                 // 공이 있을 땐: 공통 + 공격
-                slot.gameObject.SetActive(isCommon || isOffensive);
+                slot.gameObject.SetActive(isNone|| isOffensive);
             }
             else
             {
                 // 공이 없을 땐: 공통 + 수비
-                slot.gameObject.SetActive(isCommon || isDefensive);
+                slot.gameObject.SetActive(isNone|| isCommon || isDefensive);
             }
         }
     }

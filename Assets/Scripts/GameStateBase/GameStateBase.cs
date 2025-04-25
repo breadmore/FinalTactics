@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 using Unity.Netcode;
+using UnityEngine.TextCore.Text;
 public abstract class GameStateBase : IGameState
 {
     public virtual void EnterState() { }
@@ -20,7 +21,9 @@ public class PlayerConnectionState : GameStateBase
     public override void EnterState()
     {
         Debug.Log("Entered PlayerConnectionState");
+        InGameUIManager.Instance.CloseAllSlot();
         GameManager.Instance.DecideFirstAttack();
+        BallManager.Instance.UpdateSpawnBallButtonState();
         EnterGame();
     }
 
@@ -35,13 +38,14 @@ public class CharacterDataSelectionState : GameStateBase
 {
     public override void EnterState()
     {
-        InGameUIManager.Instance.CharacterSlot.SetActive(true);
-        GameManager.Instance.ClearAllSelected();
+        TurnManager.Instance.IsActiveGame = false;
+        InGameUIManager.Instance.OpenSlotUI();
         Debug.Log("Entered CharacterSelectionState");
     }
 
     public override void OnCharacterDataSelected(CharacterData characterData)
     {
+
         GameManager.Instance.SetCharacterData(characterData);
         GameManager.Instance.ChangeState<CharacterDataSelectedState>();
         // 상태 변경 없이 데이터만 설정
@@ -120,12 +124,6 @@ public class ReadyCheckState : GameStateBase
         Debug.Log("Entered ReadyCheckState");
     }
 
-    public override void OnCharacterDataSelected(CharacterData characterData)
-    {
-        GameManager.Instance.SetCharacterData(characterData);
-        GameManager.Instance.ChangeState(new CharacterDataSelectedState());
-    }
-
     public override void HandleAllPlayersReady()
     {
 
@@ -139,12 +137,13 @@ public class InitGameState : GameStateBase
 {
     public override void EnterState()
     {
-        TurnManager.Instance.StartTurn();
-        GameManager.Instance.ClearAllSelected();
+        TurnManager.Instance.IsActiveGame = true;
         GridManager.Instance.TurnStartSetting();
-        BallManager.Instance.TurnStartSetting();
-        Debug.Log($"Turn {TurnManager.Instance.currentTurn} started");
+        BallManager.Instance.SetBallOwner();
+        TurnManager.Instance.NextTurn();
+        GameManager.Instance.ClearAllSelected();
 
+        Debug.Log($"Turn {TurnManager.Instance.currentTurn} started");
         GameManager.Instance.ChangeState<PlayerActionDecisionState>();
     }
 }
@@ -153,10 +152,13 @@ public class PlayerActionDecisionState : GameStateBase
 {
     public override void EnterState()
     {
-        Debug.Log($"Turn {TurnManager.Instance.currentTurn} started");
+        InGameUIManager.Instance.CloseAllSlot();
     }
     public override void OnPlayerCharacterSelected(PlayerCharacter playerCharacter)
     {
+        // 데이터 오픈
+
+        InGameUIManager.Instance.ActionSlot.RefreshActionSlots(BallManager.Instance.IsBallOwnedBy(GameManager.Instance.SelectedPlayerCharacter));
         if (playerCharacter.OwnerClientId == GameManager.Instance.thisPlayerBrain.OwnerClientId)
         {
             GameManager.Instance.SetPlayerCharacter(playerCharacter);
@@ -179,8 +181,7 @@ public class CharacterControlState : GameStateBase
 
     public override void EnterState()
     {
-
-        InGameUIManager.Instance.ActionSlot.SetActive(true);
+        InGameUIManager.Instance.OpenSlotUI();
         Debug.Log("Entered CharacterControlState");
     }
 
@@ -194,6 +195,9 @@ public class CharacterControlState : GameStateBase
             GameManager.Instance.ChangeState<ActionOptionSelecteState>();
         }
     }
+
+
+
 }
 
 
@@ -201,7 +205,6 @@ public class ActionDataSelectedState : GameStateBase
 {
     public override void EnterState()
     {
-        InGameUIManager.Instance.ActionSlot.SetActive(true);
         Debug.Log("Entered ActionDataSelectedState");
     }
 
@@ -213,6 +216,89 @@ public class ActionDataSelectedState : GameStateBase
     }
 }
 
+
+public class ActionOptionSelecteState : GameStateBase
+{
+    private int _currentActionId;
+
+    public override void EnterState()
+    {
+        _currentActionId = GameManager.Instance.SelectedActionData;
+        InGameUIManager.Instance.OpenSlotUI();
+        Debug.Log($"Entered ActionOption selection for action ID: {_currentActionId}");
+    }
+
+    public override void ExitState()
+    {
+        InGameUIManager.Instance.CloseAllSlot();
+    }
+    public override void OnGridTileSelected(GridTile gridTile)
+    {
+        GameManager.Instance.SetGridTile(gridTile);
+        ActionPreviewManager.Instance.ClearHighlights();
+        InGameUIManager.Instance.CloseAllSlot();
+    }
+
+    public override void OnActionOptionSelected(ActionOptionData actionOptionData)
+    {
+        if (actionOptionData == null)
+        {
+            Debug.LogError("Invalid action option data!");
+            return;
+        }
+        GameManager.Instance.SetActionOptionData(actionOptionData.id);
+
+        switch (actionOptionData.id)
+        {
+            case 1:
+                ExecuteCharge(actionOptionData);
+                break;
+
+            case 2:
+                ExecuteShoot();
+                break;
+
+            case 0:
+                CancelSelection();
+                break;
+
+            default:
+                Debug.LogError($"Unknown option type: {actionOptionData.name}");
+                break;
+        }
+    }
+
+    private void ExecuteCharge(ActionOptionData option)
+    {
+        // 즉시 실행되는 액션 (예: 차지 슛)
+        InGameUIManager.Instance.CloseAllSlot();
+
+        // 서버에 액션 전송
+        TurnManager.Instance.SubmitActionServerRpc(
+            GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId,
+            option.actionId,
+            GameManager.Instance.SelectedPlayerCharacter.GridPosition,
+            option.id // 옵션 ID 추가 전송
+        );
+        GameManager.Instance.ChangeState<PlayerActionDecisionState>();
+    }
+
+    private void ExecuteShoot()
+    {
+        // 타겟 선택이 필요한 액션 (예: 일반 슛)
+        GameManager.Instance.SetActionData(2);
+    }
+
+    private void CancelSelection()
+    {
+        // 옵션 선택 취소
+        InGameUIManager.Instance.CloseAllSlot();
+        GameManager.Instance.ChangeState<CharacterControlState>();
+    }
+
+
+
+}
 
 
 
@@ -247,6 +333,11 @@ public class ActionExecutionState : GameStateBase
         // TurnManager에서 ClientRpc로 완료 알림
     }
 
+    public override void ExitState()
+    {
+        Debug.Log("End Action!");
+    }
+
 
 }
 
@@ -262,7 +353,7 @@ public class GameResetState : GameStateBase
     {
         await UniTask.Delay(2000); // 2초 대기
 
-        PlayerCharacterNetworkPool.Instance.ReturnAllCharacter();
+        PlayerCharacterNetworkPool.Instance.ReturnAllCharacters();
         BallManager.Instance.DespawnBall();
         GameManager.Instance.ResetAllPlayersReadyState();
         GridManager.Instance.ResetAllGridTile();
@@ -275,104 +366,4 @@ public class GameResetState : GameStateBase
     {
         GameManager.Instance.ResetGameClientRpc();
     }
-}
-
-public class ActionOptionSelecteState : GameStateBase
-{
-    private int _currentActionId;
-
-    public override void EnterState()
-    {
-        _currentActionId = GameManager.Instance.SelectedActionData;
-        InGameUIManager.Instance.ActionSlot.SetActive(false);
-        ShowOptionUI();
-        Debug.Log($"Entered ActionOption selection for action ID: {_currentActionId}");
-    }
-
-    public override void ExitState()
-    {
-        InGameUIManager.Instance.OptionSlot.gameObject.SetActive(false);
-    }
-
-    private void ShowOptionUI()
-    {
-        // 현재 액션에 맞는 옵션 UI 표시
-        var actionData = LoadDataManager.Instance.actionDataReader.GetActionDataById(_currentActionId);
-
-        if (actionData != null && actionData.hasOption)
-        {
-
-            InGameUIManager.Instance.OptionSlot.gameObject.SetActive(true);
-            InGameUIManager.Instance.OptionSlot.InitChildOption(
-                LoadDataManager.Instance.actionOptionDataReader.GetActionOptionsByActionId(_currentActionId)
-            );
-        }
-        else
-        {
-            Debug.LogError($"No options available for action ID: {_currentActionId}");
-            GameManager.Instance.ChangeState<CharacterControlState>();
-        }
-    }
-
-    public override void OnActionOptionSelected(ActionOptionData actionOptionData)
-    {
-        if (actionOptionData == null)
-        {
-            Debug.LogError("Invalid action option data!");
-            return;
-        }
-        Debug.Log("Selecte succ");
-        GameManager.Instance.SetActionOptionData(actionOptionData.id);
-
-        switch (actionOptionData.id)
-        {
-            case 1:
-                ExecuteCharge(actionOptionData);
-                break;
-
-            case 2:
-                PrepareTargetSelection();
-                break;
-
-            case 0:
-                CancelSelection();
-                break;
-
-            default:
-                Debug.LogError($"Unknown option type: {actionOptionData.name}");
-                break;
-        }
-    }
-
-    private void ExecuteCharge(ActionOptionData option)
-    {
-        // 즉시 실행되는 액션 (예: 차지 슛)
-        InGameUIManager.Instance.CloseAllSlot();
-
-        // 서버에 액션 전송
-        TurnManager.Instance.SubmitActionServerRpc(
-            GameManager.Instance.SelectedPlayerCharacter.NetworkObjectId,
-            option.actionId,
-            GameManager.Instance.SelectedPlayerCharacter.GridPosition,
-            option.id // 옵션 ID 추가 전송
-        );
-        GameManager.Instance.ChangeState<PlayerActionDecisionState>();
-    }
-
-    private void PrepareTargetSelection()
-    {
-        // 타겟 선택이 필요한 액션 (예: 일반 슛)
-        GameManager.Instance.SetActionData(2);
-        GameManager.Instance.ChangeState<ActionDataSelectedState>();
-    }
-
-    private void CancelSelection()
-    {
-        // 옵션 선택 취소
-        InGameUIManager.Instance.CloseAllSlot();
-        GameManager.Instance.ChangeState<CharacterControlState>();
-    }
-
-
-
 }

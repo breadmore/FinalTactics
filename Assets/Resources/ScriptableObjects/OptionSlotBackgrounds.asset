@@ -18,4 +18,4 @@ MonoBehaviour:
   - optionId: 1
     backgroundImage: {fileID: 21300000, guid: 26d4288fc9be2e74887bf00156128919, type: 3}
   - optionId: 2
-    backgroundImage: {fileID: 21300000, guid: e4ab725b201fb8a46aaf86ba5cce7c4f, type: 3}
+    backgroundImage: {fileID: 21300000, guid: 89492c7542dde6b4cb4978a0cd6ec6a5, type: 3}

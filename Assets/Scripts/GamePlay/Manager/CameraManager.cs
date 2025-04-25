@@ -117,9 +117,8 @@ public class CameraManager : Singleton<CameraManager>
                     PlayerCharacter character = hit.collider.GetComponent<PlayerCharacter>();
                     if (character != null)
                     {
-                        GameManager.Instance.OnPlayerCharacterSelected(character);
+                        Debug.Log(character.GetCharacterId());
                         FocusCameraOnCharacter(character);
-                        InGameUIManager.Instance.gameDataPanel.OpenWithCharacterData(character);
                     }
                 }
             }
@@ -147,6 +146,48 @@ public class CameraManager : Singleton<CameraManager>
             isMovingToTarget = false;
         }
     }
+
+    private void FocusCameraOnCharacter(PlayerCharacter character)
+    {
+        if (focusPlayer != null && focusPlayer.clickParticle != null)
+        {
+            focusPlayer.clickParticle.gameObject.SetActive(false);
+            focusPlayer = null;
+        }
+
+        focusPlayer = character;
+        InGameUIManager.Instance.gameDataPanel.OpenWithCharacterData(focusPlayer);
+
+        if (TurnManager.Instance.IsActiveGame)
+        {
+            GameManager.Instance.ChangeState<PlayerActionDecisionState>();
+            GameManager.Instance.OnPlayerCharacterSelected(focusPlayer);
+        }
+
+        if (focusPlayer.clickParticle != null)
+        {
+            focusPlayer.clickParticle.gameObject.SetActive(true);
+        }
+
+        Vector3 characterPosition = character.transform.position;
+
+        // 팀에 따라 x축 오프셋 설정
+        float xOffset = 6f;
+        if (playerTeam == TeamName.Red)
+        {
+            xOffset *= -1f; // 반대 방향
+        }
+
+        // 카메라 위치는 캐릭터 기준으로 xOffset만큼 옮긴 위치
+
+        Vector3 targetPosition = new Vector3(
+            characterPosition.x + xOffset,
+            cinemachineCamera.transform.position.y, // 기존 높이 유지
+            characterPosition.z
+        );
+
+        MoveCameraTo(targetPosition);
+    }
     #endregion
 
     #region === 액션 카메라 연출 ===
@@ -165,42 +206,6 @@ public class CameraManager : Singleton<CameraManager>
     {
         yield return new WaitForSeconds(actionCameraDuration);
         actionCamera.Priority = 5; // 다시 비활성화
-    }
-
-    private void FocusCameraOnCharacter(PlayerCharacter character)
-    {
-        if(focusPlayer != null && focusPlayer.clickParticle != null)
-        {
-
-            focusPlayer.clickParticle.gameObject.SetActive(false);
-            focusPlayer = null;
-        }
-
-        focusPlayer = character;
-
-        if (focusPlayer.clickParticle != null)
-        {
-            focusPlayer.clickParticle.gameObject.SetActive(true);
-        }
-
-        Vector3 characterPosition = character.transform.position;
-
-        // 팀에 따라 x축 오프셋 설정
-        float xOffset = 6f;
-        if (playerTeam == TeamName.TeamB)
-        {
-            xOffset *= -1f; // 반대 방향
-        }
-
-        // 카메라 위치는 캐릭터 기준으로 xOffset만큼 옮긴 위치
-
-        Vector3 targetPosition = new Vector3(
-            characterPosition.x + xOffset,
-            cinemachineCamera.transform.position.y, // 기존 높이 유지
-            characterPosition.z
-        );
-
-        MoveCameraTo(targetPosition);
     }
 
     #endregion

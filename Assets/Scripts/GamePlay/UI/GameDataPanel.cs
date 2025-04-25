@@ -12,7 +12,7 @@ public class GameDataPanel : BaseAnimatedPanel
     [SerializeField] private TextMeshProUGUI staminaText;
     public void OpenWithCharacterData(PlayerCharacter character)
     {
-        nameText.text = "Name";
+        nameText.text = character.GetCharacterId().ToString();
              
         // 캐릭터 정보 세팅
         speedText.text = character.CharacterStat.speed.ToString();
