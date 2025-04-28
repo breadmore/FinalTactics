@@ -14,7 +14,13 @@ public enum ActionType
     Save,       // 슛 방어
     Length
 }
-public enum ShootOption { Cancel, Charge, Shoot }
+public enum OptionType
+{ 
+    Cancel, 
+    Charge, 
+    Shoot,
+    Length
+}
 
 public enum CharacterType
 {
@@ -83,4 +89,8 @@ public static class GameConstants
     // 스탯 관련
     public const int BlockDistance = 1;
     public const int TackleDistance = 2;
+
+    // 알림 텍스트
+    public const string GoalText = "골 !!!";
+    public const string ActionExcuteText = "액션 실행중...";
 }

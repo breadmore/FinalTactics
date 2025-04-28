@@ -1,17 +1,23 @@
-﻿using Unity.VisualScripting;
+﻿using System;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public interface IActionHandler
 {
-    bool CanExecute(PlayerCharacter player, GridTile targetTile);  // 실행 가능 여부 판단
-    void ExecuteAction(PlayerCharacter player, GridTile targetTile);  // 액션 실행
+    bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1);  // 실행 가능 여부 판단
+    void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1);  // 액션 실행
+    
 }
 
 public static class ActionHandlerFactory
 {
-    public static IActionHandler CreateHandler(ActionType actionType)
+    public static IActionHandler CreateHandler(PlayerAction playerAction)
     {
-        return actionType switch
+        // actionId로부터 ActionData 먼저 가져오기
+        ActionData actionData = LoadDataManager.Instance.actionDataReader.GetActionDataById(playerAction.actionId);
+
+        // actionType에 따라 핸들러 생성
+        IActionHandler handler = actionData.actionType switch
         {
             ActionType.Move => new MoveActionHandler(),
             ActionType.Pass => new PassActionHandler(),
@@ -23,11 +29,24 @@ public static class ActionHandlerFactory
             ActionType.Save => new SaveActionHandler(),
             _ => null
         };
+
+        if (handler is IOptionHandler optionHandler && playerAction.optionId >= 0)
+        {
+            var optionData = LoadDataManager.Instance.actionOptionDataReader.GetActionOptionById(playerAction.optionId);
+            optionHandler.SetOptionData(optionData);
+        }
+
+        return handler;
     }
+}
+
+public interface IOptionHandler
+{
+    void SetOptionData(ActionOptionData optionData);
 }
 public class MoveActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (targetTile.IsOccupied())
             return false;
@@ -38,7 +57,7 @@ public class MoveActionHandler : IActionHandler
         return distance <= moveRange;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -52,7 +71,7 @@ public class MoveActionHandler : IActionHandler
 }
 public class PassActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!BallManager.Instance.IsBallOwnedBy(player)) return false;
 
@@ -62,7 +81,7 @@ public class PassActionHandler : IActionHandler
         return distance <= moveRange;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -76,7 +95,7 @@ public class PassActionHandler : IActionHandler
 }
 public class DribbleActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (targetTile.IsOccupied() || !BallManager.Instance.IsBallOwnedBy(player))
         {
@@ -88,14 +107,14 @@ public class DribbleActionHandler : IActionHandler
             return distance <= moveRange;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
             Debug.LogWarning("Cannot dribble.");
             return;
         }
-        float randomValue = Random.Range(0f, 1f);
+        float randomValue = UnityEngine.Random.Range(0f, 1f);
 
         if (randomValue < targetTile.BlockProbability)
         {
@@ -118,12 +137,12 @@ public class DribbleActionHandler : IActionHandler
 
 public class BlockActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         return GridUtils.IsStraightLineInRange(player.GridPosition, targetTile.gridPosition, GameConstants.BlockDistance);
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -142,7 +161,7 @@ public class BlockActionHandler : IActionHandler
 
 public class TackleActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         int distance = GridUtils.GetDistance(player.GridPosition, targetTile.gridPosition);
         var opponent = targetTile.occupyingCharacter;
@@ -153,7 +172,7 @@ public class TackleActionHandler : IActionHandler
         return distance <= GameConstants.TackleDistance;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -164,7 +183,7 @@ public class TackleActionHandler : IActionHandler
         var opponent = targetTile.occupyingCharacter;
         float successRate = GridUtils.GetTackleSuccessProbability(player, opponent);  // 능력 기반 확률
 
-        float roll = Random.Range(0f, 1f);
+        float roll = UnityEngine.Random.Range(0f, 1f);
         Debug.Log($"[Tackle] SuccessChance: {successRate}, Rolled: {roll}");
 
 
@@ -200,17 +219,15 @@ public class TackleActionHandler : IActionHandler
         }
     }
 }
-public class ShootActionHandler : IActionHandler
+public class ShootActionHandler : IActionHandler, IOptionHandler
 {
-    private ActionOptionData _option;
-
-    public ShootActionHandler()
+    private ActionOptionData _optionData;
+    public void SetOptionData(ActionOptionData optionData)
     {
-        _option = LoadDataManager.Instance.actionOptionDataReader
-            .GetActionOptionById(GameManager.Instance.SelectedActionOptionData);
+        _optionData = optionData;
     }
 
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         // 기본 조건 검사
         if (!BallManager.Instance.IsBallOwnedBy(player) ||
@@ -226,9 +243,11 @@ public class ShootActionHandler : IActionHandler
         return distance <= maxDistance;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
-        switch (_option.name)
+
+
+        switch (_optionData.name)
         {
             case "Cancel":
                 HandleCancel(player);
@@ -243,7 +262,7 @@ public class ShootActionHandler : IActionHandler
                 break;
 
             default:
-                Debug.LogError($"Unknown shoot option: {_option.name}");
+                Debug.LogError($"Unknown shoot option: {_optionData.name}");
                 break;
         }
     }
@@ -261,7 +280,7 @@ public class ShootActionHandler : IActionHandler
         Debug.Log($"Charging... Current level: {player.ShootChargeCount}");
     }
 
-    private void HandleShoot(PlayerCharacter player, GridTile targetTile)
+    private void HandleShoot(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -306,12 +325,12 @@ public class ShootActionHandler : IActionHandler
 
 public class InterceptActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         return BallManager.Instance.IsBallAtTile(targetTile);
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {
@@ -325,14 +344,14 @@ public class InterceptActionHandler : IActionHandler
 }
 public class SaveActionHandler : IActionHandler
 {
-    public bool CanExecute(PlayerCharacter player, GridTile targetTile)
+    public bool CanExecute(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         // 골키퍼 체크
         //return player.IsGoalkeeper && BallManager.Instance.IsBallAtTile(targetTile);
         return false;
     }
 
-    public void ExecuteAction(PlayerCharacter player, GridTile targetTile)
+    public void ExecuteAction(PlayerCharacter player, GridTile targetTile, int optionId = -1)
     {
         if (!CanExecute(player, targetTile))
         {

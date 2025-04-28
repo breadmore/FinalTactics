@@ -13,7 +13,7 @@ public class ActionDataReader : DataReaderBase
     public void UpdateAction(List<GSTU_Cell> list, int actionID)
     {
         int id = 0;
-        ActionType action = ActionType.None;
+        ActionType actionType = ActionType.None;
         ActionCategory category = ActionCategory.Common;
         bool hasOption = false;
         List<string> options = new List<string>();
@@ -27,12 +27,12 @@ public class ActionDataReader : DataReaderBase
                 case "name":
                     if (Enum.TryParse(list[i].value, out ActionType parsedAction))
                     {
-                        action = parsedAction;
+                        actionType = parsedAction;
                     }
                     else
                     {
                         Debug.LogWarning($"Invalid action name: {list[i].value}");
-                        action = ActionType.None;  // 抗寇 贸府
+                        actionType = ActionType.None;  // 抗寇 贸府
                     }
                     break;
                 case "type":
@@ -71,7 +71,7 @@ public class ActionDataReader : DataReaderBase
             }
         }
 
-        DataList.Add(new ActionData(id, action, category,hasOption,options));
+        DataList.Add(new ActionData(id, actionType, category,hasOption,options));
     }
 
     public ActionData GetActionDataById(int? actionID)

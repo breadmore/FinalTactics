@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class InGameUIManager : Singleton<InGameUIManager>
 {
-    public TextMeshProUGUI AlertText;
     public TextMeshProUGUI turnText;
 
     public TextMeshProUGUI teamAScoreText;
@@ -44,22 +43,6 @@ public class InGameUIManager : Singleton<InGameUIManager>
         Debug.Log("Button Click");
         GameManager.Instance.SetPlayerReady();
     }
-
-    public void ShowGoalMessage(TeamName scoringTeam)
-    {
-        Debug.Log("Goal!!!!!!!! [" + scoringTeam + "]");
-
-        AlertText.text = "GOAL!";
-        AlertText.transform.localScale = Vector3.zero;
-        AlertText.gameObject.SetActive(true);
-
-        Sequence seq = DOTween.Sequence();
-        seq.Append(AlertText.transform.DOScale(1.5f, 0.5f).SetEase(Ease.OutBack));
-        seq.AppendInterval(1.2f); // 유지 시간
-        seq.Append(AlertText.transform.DOScale(0f, 0.3f).SetEase(Ease.InBack));
-        seq.OnComplete(() => AlertText.gameObject.SetActive(false));
-    }
-
 
     public void UpdateScoreUI(int teamAScore, int teamBScore)
     {

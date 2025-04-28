@@ -23,6 +23,7 @@ public class PlayerConnectionState : GameStateBase
         Debug.Log("Entered PlayerConnectionState");
         InGameUIManager.Instance.CloseAllSlot();
         GameManager.Instance.DecideFirstAttack();
+        GameManager.Instance.InitializeActionCounters();
         BallManager.Instance.UpdateSpawnBallButtonState();
         EnterGame();
     }

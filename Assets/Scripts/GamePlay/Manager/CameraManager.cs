@@ -117,7 +117,6 @@ public class CameraManager : Singleton<CameraManager>
                     PlayerCharacter character = hit.collider.GetComponent<PlayerCharacter>();
                     if (character != null)
                     {
-                        Debug.Log(character.GetCharacterId());
                         FocusCameraOnCharacter(character);
                     }
                 }
@@ -162,6 +161,7 @@ public class CameraManager : Singleton<CameraManager>
         {
             GameManager.Instance.ChangeState<PlayerActionDecisionState>();
             GameManager.Instance.OnPlayerCharacterSelected(focusPlayer);
+            Debug.Log(focusPlayer.ShootChargeCount);
         }
 
         if (focusPlayer.clickParticle != null)

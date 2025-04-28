@@ -39,8 +39,9 @@ public class ActionSlotChild : BaseLayoutGroupChild<ActionSlotChild>
 
         if (actionData != null)
         {
+            Debug.Log(actionData.actionType);
             GameManager.Instance.OnActionSelected(actionData);
-            ActionPreviewManager.Instance.HighlightTilesForAction(actionData.action, GameManager.Instance.SelectedPlayerCharacter);
+            ActionPreviewManager.Instance.HighlightTilesForAction(ActionId, GameManager.Instance.SelectedPlayerCharacter);
             
             
         }

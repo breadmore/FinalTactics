@@ -6,15 +6,17 @@ using System;
 using QFSW.QC;
 using Cysharp.Threading.Tasks;
 
+public struct PlayerAction
+{
+    public ulong playerId;
+    public int actionId;
+    public Vector2Int targetTile;
+    public int optionId;
+}
+
 public class TurnManager : NetworkSingleton<TurnManager>
 {
-    private struct PlayerAction
-    {
-        public ulong playerId;
-        public int actionId;
-        public GridTile targetTile;
-        public int optionId;
-    }
+
 
     public int currentTurn;
     private int totalPlayers;
@@ -66,7 +68,6 @@ public class TurnManager : NetworkSingleton<TurnManager>
     [ServerRpc(RequireOwnership = false)]
     public void SubmitActionServerRpc(ulong playerId, int actionId, Vector2Int targetTilePos, int optionId)
     {
-        GridTile targetTile = GridManager.Instance.GetGridTileAtPosition(targetTilePos);
         ActionCategory actionCategory = LoadDataManager.Instance.actionDataReader.GetActionDataById(actionId).category;
 
         RemoveExistingAction(playerId);
@@ -75,7 +76,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         {
             playerId = playerId,
             actionId = actionId,
-            targetTile = targetTile,
+            targetTile = targetTilePos,
             optionId = optionId
         };
 
@@ -92,7 +93,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
                 break;
         }
 
-        Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} , Option : {optionId} at {targetTile.gridPosition}");
+        Debug.Log($"Player {playerId} submitted {actionCategory} action: {actionId} , Option : {optionId} at {targetTilePos}");
     }
 
     private void RemoveExistingAction(ulong playerId)
@@ -120,6 +121,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
     private async UniTask ExecuteActionsAsync()
     {
         Debug.Log("액션 리스트 실행");
+        GameManager.Instance.NotifyAlertClientRpc(GameConstants.ActionExcuteText);
         await ExecuteActionListAsync(defenseActions);
         await ExecuteActionListAsync(commonActions);
         await ExecuteActionListAsync(offenseActions);
@@ -145,11 +147,14 @@ public class TurnManager : NetworkSingleton<TurnManager>
         foreach (var action in actionList)
         {
             PlayerCharacter character = GridManager.Instance.GetCharacterByNetworkId(action.playerId);
-            Vector2Int targetPos = action.targetTile.gridPosition;
-            ActionType actionType = (ActionType)action.actionId;
+            Vector2Int targetPos = action.targetTile;
+            ActionData actionData = LoadDataManager.Instance.actionDataReader.GetActionDataById(action.actionId);
+            int optionId = action.optionId;
+            // 액션 카운트 증가
+            GameManager.Instance.IncrementActionCountClientRpc(character.Team, actionData.actionType);
 
-            IActionHandler handler = ActionHandlerFactory.CreateHandler(actionType);
-            bool isMovementAction = actionType == ActionType.Move || actionType == ActionType.Dribble;
+            IActionHandler handler = ActionHandlerFactory.CreateHandler(action);
+            bool isMovementAction = actionData.actionType == ActionType.Move || actionData.actionType == ActionType.Dribble;
 
             if (isMovementAction && occupiedPositions.Contains(targetPos))
             {
@@ -157,9 +162,10 @@ public class TurnManager : NetworkSingleton<TurnManager>
             }
             else
             {
-                handler.ExecuteAction(character, action.targetTile);
+                handler.ExecuteAction(character, GridManager.Instance.GetGridTileAtPosition(action.targetTile));
                 if (isMovementAction)
                     occupiedPositions.Add(targetPos);
+
             }
 
             await UniTask.Delay(TimeSpan.FromSeconds(GameConstants.ActionTime));
@@ -170,6 +176,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
         await UniTask.Delay(TimeSpan.FromSeconds(1f));
 
         Debug.Log("액션 종료");
+        GameManager.Instance.NotifyAlertClientRpc(GameConstants.ActionExcuteText);
         NotifyTurnEndClientRpc(currentTurn);
     }
 
@@ -189,7 +196,7 @@ public class TurnManager : NetworkSingleton<TurnManager>
             Debug.Log($"--- {category} Actions ---");
             foreach (var action in actions)
             {
-                Debug.Log($"Player {action.playerId}: Action {action.actionId} at {action.targetTile.gridPosition}");
+                Debug.Log($"Player {action.playerId}: Action {action.actionId} at {action.targetTile}");
             }
         }
 

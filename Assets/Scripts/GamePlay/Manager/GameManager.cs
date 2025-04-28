@@ -32,6 +32,8 @@ public class GameManager : NetworkSingleton<GameManager>
     private NetworkVariable<TeamName> attackingTeam = new NetworkVariable<TeamName>();
     public TeamName AttackingTeam => attackingTeam.Value;
 
+    // 팀별 액션 카운트
+    public Dictionary<TeamName, ActionCounter> teamActionCounters = new Dictionary<TeamName, ActionCounter>();
 
     public void SetCharacterData(CharacterData characterData) => SelectedCharacterData = characterData;
     public void SetGridTile(GridTile gridTile) => SelectedGridTile = gridTile;
@@ -39,6 +41,12 @@ public class GameManager : NetworkSingleton<GameManager>
     public void SetActionOptionData(int actionOptionData) => SelectedActionOptionData = actionOptionData;
     public void SetPlayerCharacter(PlayerCharacter playerCharacter) => SelectedPlayerCharacter = playerCharacter;
 
+    // 상태 변경 메서드
+    public void OnCharacterDataSelected(CharacterData characterData) => _currentState.OnCharacterDataSelected(characterData);
+    public void OnGridTileSelected(GridTile gridTile) => _currentState.OnGridTileSelected(gridTile);
+    public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter) => _currentState.OnPlayerCharacterSelected(playerCharacter);
+    public void OnActionSelected(ActionData actionData) => _currentState.OnActionSelected(actionData);
+    public void OnActionOptionSelected(ActionOptionData actionOptionData) => _currentState.OnActionOptionSelected(actionOptionData);
 
     public override void OnNetworkSpawn()
     {
@@ -82,20 +90,6 @@ public class GameManager : NetworkSingleton<GameManager>
         ChangeState(new T());
     }
 
-    // 상태 변경 메서드들 (기존 메서드 대체)
-    public void OnCharacterDataSelected(CharacterData characterData) => _currentState.OnCharacterDataSelected(characterData);
-    public void OnGridTileSelected(GridTile gridTile) => _currentState.OnGridTileSelected(gridTile);
-    public void OnPlayerCharacterSelected(PlayerCharacter playerCharacter) => _currentState.OnPlayerCharacterSelected(playerCharacter);
-    public void OnActionSelected(ActionData actionData) => _currentState.OnActionSelected(actionData);
-    public void OnActionOptionSelected(ActionOptionData actionOptionData) => _currentState.OnActionOptionSelected(actionOptionData);
-
-    public void SetTeamCamera()
-    {
-        if (thisPlayerBrain.GetMyTeam() == TeamName.Blue)
-        {
-            CameraManager.Instance.cinemachineCamera.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-        }
-    }
     public void ClearAllSelected()
     {
         SelectedGridTile = null;
@@ -155,6 +149,29 @@ public class GameManager : NetworkSingleton<GameManager>
                 teamRed.Players.Add(playerData);
             else
                 teamBlue.Players.Add(playerData);
+        }
+    }
+
+    public void InitializeActionCounters()
+    {
+        teamActionCounters[TeamName.Red] = new ActionCounter();
+        teamActionCounters[TeamName.Blue] = new ActionCounter();
+    }
+
+    [ClientRpc]
+    public void IncrementActionCountClientRpc(TeamName team, ActionType actionType)
+    {
+        if (teamActionCounters.ContainsKey(team))
+        {
+            teamActionCounters[team].IncrementCount(actionType);
+        }
+    }
+
+    public void ResetAllActionCounts()
+    {
+        foreach (var counter in teamActionCounters.Values)
+        {
+            counter.ResetCounts();
         }
     }
 
@@ -241,7 +258,7 @@ public class GameManager : NetworkSingleton<GameManager>
 
     public void Goal(TeamName teamName)
     {
-        NotifyGoalClientRpc(teamName);
+        NotifyAlertClientRpc(GameConstants.GoalText, 1.2f);
 
         if (teamName == TeamName.Red)
         {
@@ -250,7 +267,7 @@ public class GameManager : NetworkSingleton<GameManager>
             if (teamRed.score >= 3)
             {
                 // A팀 승리
-                InGameUIManager.Instance.resultPanel.ShowResult();
+                ChangeState<GameFinishedState>();
             }
         }
         else
@@ -260,7 +277,7 @@ public class GameManager : NetworkSingleton<GameManager>
             if (teamBlue.score >= 3)
             {
                 // B팀 승리
-                InGameUIManager.Instance.resultPanel.ShowResult();
+                ChangeState<GameFinishedState>();
             }
         }
 
@@ -283,9 +300,15 @@ public class GameManager : NetworkSingleton<GameManager>
 
 
     [ClientRpc]
-    private void NotifyGoalClientRpc(TeamName scoringTeam)
+    public void NotifyAlertClientRpc(string alertText, float time)
     {
-        InGameUIManager.Instance.ShowGoalMessage(scoringTeam);
+        AlertManager.Instance.ShowAlert(alertText, time);
+    }
+
+    [ClientRpc]
+    public void NotifyAlertClientRpc(string alertText)
+    {
+        AlertManager.Instance.ShowAlert(alertText);
     }
 
     private async UniTaskVoid ResetAfterGoal()
@@ -315,9 +338,7 @@ public class GameManager : NetworkSingleton<GameManager>
         return result == 0;
     }
 
-
-    // Quantum Console Command
-
+    #region === 퀀텀 콘솔 커맨드 ===
     [Command]
     public void PrintAllPlayersReadyState()
     {
@@ -371,4 +392,5 @@ public class GameManager : NetworkSingleton<GameManager>
         Debug.Log("Team Red : " + teamRed.Players.Count);
         Debug.Log("Team Blue : " + teamBlue.Players.Count);
     }
+    #endregion
 }

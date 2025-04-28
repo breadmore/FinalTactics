@@ -18,49 +18,49 @@ MonoBehaviour:
   END_ROW_LENGTH: 10
   DataList:
   - id: 0
-    action: 0
+    actionType: 0
     category: 0
     hasOption: 0
     options: []
   - id: 1
-    action: 1
+    actionType: 1
     category: 1
     hasOption: 0
     options: []
   - id: 2
-    action: 2
+    actionType: 2
     category: 2
     hasOption: 1
     options:
     - charge
     - shoot
   - id: 3
-    action: 3
+    actionType: 3
     category: 2
     hasOption: 0
     options: []
   - id: 4
-    action: 4
+    actionType: 4
     category: 2
     hasOption: 0
     options: []
   - id: 5
-    action: 5
+    actionType: 5
     category: 3
     hasOption: 0
     options: []
   - id: 6
-    action: 6
+    actionType: 6
     category: 3
     hasOption: 0
     options: []
   - id: 7
-    action: 7
+    actionType: 7
     category: 4
     hasOption: 0
     options: []
   - id: 8
-    action: 8
+    actionType: 8
     category: 4
     hasOption: 0
     options: []

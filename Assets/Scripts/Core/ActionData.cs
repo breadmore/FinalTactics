@@ -7,15 +7,15 @@ using UnityEngine;
 public class ActionData
 {
     public int id;
-    public ActionType action;
+    public ActionType actionType;
     public ActionCategory category;
     public bool hasOption;
     public List<string> options = new List<string>();
 
-    public ActionData(int id, ActionType action, ActionCategory category, bool hasOption, List<string> options)
+    public ActionData(int id, ActionType actionType, ActionCategory category, bool hasOption, List<string> options)
     {
         this.id = id;
-        this.action = action;
+        this.actionType = actionType;
         this.category = category;
         this.hasOption = hasOption;
         this.options = options;

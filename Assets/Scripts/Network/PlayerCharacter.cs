@@ -28,6 +28,9 @@ public class PlayerCharacter : NetworkBehaviour
     private NetworkVariable<Vector2Int> gridPosition = new(
         readPerm: NetworkVariableReadPermission.Everyone,
         writePerm: NetworkVariableWritePermission.Server);
+    private NetworkVariable<int> shootChargeCount = new(
+    readPerm: NetworkVariableReadPermission.Everyone,
+    writePerm: NetworkVariableWritePermission.Server);
 
     public int Stamina => stamina.Value;
     public TeamName Team => team.Value;
@@ -38,7 +41,7 @@ public class PlayerCharacter : NetworkBehaviour
     public ParticleSystem clickParticle;
     private PlayerCharacterAnim characterAnimator;
     public CharacterStat CharacterStat { get; private set; }
-    public int ShootChargeCount { get; private set; } = 0;
+    public int ShootChargeCount => shootChargeCount.Value;
 
     private void Awake()
     {
@@ -55,7 +58,9 @@ public class PlayerCharacter : NetworkBehaviour
             gridPosition.OnValueChanged += OnGridPositionChanged;
         }
 
-            PlayerNickname.OnValueChanged += HandlePlayerNicknameChange;
+        SetCharacterStat(characterId.Value);
+
+        PlayerNickname.OnValueChanged += HandlePlayerNicknameChange;
 
         characterId.OnValueChanged += HandleCharacterIdChange;
     }
@@ -165,12 +170,12 @@ public class PlayerCharacter : NetworkBehaviour
     public void ChargeShoot()
     {
         if (ShootChargeCount < 3)
-            ShootChargeCount++;
+            shootChargeCount.Value++;
     }
 
     public void ResetShootCharge()
     {
-        ShootChargeCount = 0;
+        shootChargeCount.Value = 0;
     }
 
     public void ResetPlayerCharacter()
