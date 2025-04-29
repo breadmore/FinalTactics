@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
@@ -31,15 +32,21 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
 
     public NetworkObject GetCharacter(Vector3 position, Quaternion rotation)
     {
-        NetworkObject character;
+        NetworkObject character = null;
 
-        if (pooledCharacters.Count > 0)
+        // 풀에서 유효한 오브젝트 찾기
+        while (pooledCharacters.Count > 0 && character == null)
         {
-            character = pooledCharacters.Dequeue();
+            var candidate = pooledCharacters.Dequeue();
+            if (!candidate.IsSpawned) // 스폰되지 않은 오브젝트만 사용
+            {
+                character = candidate;
+            }
         }
-        else
+
+        if (character == null)
         {
-            Debug.LogWarning("Character pool exhausted! Instantiating additional object.");
+            Debug.LogWarning("Creating new character instance");
             character = Instantiate(characterPrefab, position, rotation).GetComponent<NetworkObject>();
         }
 
@@ -51,27 +58,41 @@ public class PlayerCharacterNetworkPool : NetworkSingleton<PlayerCharacterNetwor
 
     public void ReturnCharacter(NetworkObject character)
     {
+        if (character == null) return;
+
+        if (!activeCharacters.Contains(character)) return;
+
+        activeCharacters.Remove(character);
+
+        ReturnToPoolInternal(character); // 먼저 풀로 반환
+
         if (character.IsSpawned)
         {
-            character.Despawn();
+            character.Despawn(true); // 그 후 디스폰
         }
+    }
 
-        character.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity); // reset
-        character.gameObject.SetActive(false); // this can be heavy if done at scale
 
+    public void ReturnToPoolInternal(NetworkObject character)
+    {
+        character.transform.SetParent(transform);
+        character.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        character.gameObject.SetActive(false);
         pooledCharacters.Enqueue(character);
     }
-    public void ReturnAllCharacters()
+    public async UniTask ReturnAllCharactersAsync()
     {
         foreach (var character in activeCharacters.ToList())
         {
             if (character != null && character.IsSpawned)
             {
                 ReturnCharacter(character);
+                await UniTask.Yield(); // 프레임 분산 처리
             }
         }
         activeCharacters.Clear();
     }
+
     private class GenericPrefabHandler : INetworkPrefabInstanceHandler
     {
         private readonly PlayerCharacterNetworkPool pool;

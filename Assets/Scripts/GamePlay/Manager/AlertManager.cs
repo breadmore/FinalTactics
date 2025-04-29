@@ -7,117 +7,107 @@ using System.Threading;
 
 public class AlertManager : Singleton<AlertManager>
 {
-    public TextMeshProUGUI AlertText;
+    [SerializeField] private TextMeshProUGUI AlertText;
     private Sequence _currentAnimation;
     private CancellationTokenSource _hideCancellationTokenSource;
     private CancellationTokenSource _showCancellationTokenSource;
-    private float _displayDuration = 2f; // 기본 표시 시간
+    private float _displayDuration = 2f;
+
+    private void OnDestroy()
+    {
+        ClearPreviousAlert();
+    }
 
     public void ShowAlert(string alertText, float duration = -1)
     {
-        // 같은 텍스트면 애니메이션만 재시작
-        if (AlertText.text == alertText && AlertText.gameObject.activeSelf)
+        if (AlertText == null)
         {
-            HideAlert();
+            Debug.LogError("AlertText is not assigned!");
             return;
         }
 
-        // 등장 중인 알림 즉시 정리
         ClearPreviousAlert();
 
-        // 새 알림 설정
         AlertText.text = alertText;
         AlertText.gameObject.SetActive(true);
 
-        // 등장 애니메이션 시작
         PlayShowAnimation(duration >= 0 ? duration : _displayDuration).Forget();
     }
 
     private async UniTaskVoid PlayShowAnimation(float duration)
     {
-        _showCancellationTokenSource = new CancellationTokenSource();
-
         try
         {
-            _currentAnimation = DOTween.Sequence();
+            _showCancellationTokenSource = new CancellationTokenSource();
 
-            _currentAnimation.Append(
-                AlertText.transform.DOScale(1.5f, 0.5f)
-                    .SetEase(Ease.OutBack)
-            );
+            // 현재 애니메이션 초기화
+            _currentAnimation = DOTween.Sequence()
+                .Append(AlertText.transform.DOScale(1.5f, 0.5f).SetEase(Ease.OutBack))
+                .SetAutoKill(false);
 
-            // 기다리면서 외부 취소를 직접 감시한다
-            await UniTask.WhenAny(
-                _currentAnimation.AsyncWaitForCompletion().AsUniTask(),
-                UniTask.WaitUntilCanceled(_showCancellationTokenSource.Token)
-            );
+            var animationTask = _currentAnimation.AsyncWaitForCompletion().AsUniTask();
+            var cancellationTask = UniTask.WaitUntilCanceled(_showCancellationTokenSource.Token);
 
-            if (_showCancellationTokenSource.IsCancellationRequested)
+            await UniTask.WhenAny(animationTask, cancellationTask);
+
+            if (!_showCancellationTokenSource.IsCancellationRequested)
             {
-                return;
+                await UniTask.Delay(TimeSpan.FromSeconds(duration),
+                    cancellationToken: (_hideCancellationTokenSource = new CancellationTokenSource()).Token);
+                await PlayHideAnimation();
             }
-
-            _hideCancellationTokenSource = new CancellationTokenSource();
-            await UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: _hideCancellationTokenSource.Token);
-
-            await PlayHideAnimation();
         }
         catch (OperationCanceledException)
         {
-            // 등장 애니메이션이나 대기 중 취소됐을 때 처리
+            // 정상적인 취소 처리
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Alert animation error: {ex}");
         }
     }
 
-
     private async UniTask PlayHideAnimation()
     {
-        _currentAnimation = DOTween.Sequence();
+        try
+        {
+            _currentAnimation = DOTween.Sequence()
+                .Append(AlertText.transform.DOScale(0f, 0.3f).SetEase(Ease.InBack))
+                .OnComplete(() => AlertText.gameObject.SetActive(false))
+                .SetAutoKill(false);
 
-        _currentAnimation.Append(
-            AlertText.transform.DOScale(0f, 0.3f)
-                .SetEase(Ease.InBack)
-        );
-
-        await _currentAnimation.AsyncWaitForCompletion();
-
-        AlertText.gameObject.SetActive(false);
-    }
-
-    private void RestartAnimation()
-    {
-        ClearPreviousAlert();
-        PlayShowAnimation(_displayDuration).Forget();
+            await _currentAnimation.AsyncWaitForCompletion();
+        }
+        finally
+        {
+            AlertText.gameObject.SetActive(false);
+        }
     }
 
     private void ClearPreviousAlert()
     {
-        // 진행 중인 등장 애니메이션 정리
+        _showCancellationTokenSource?.Cancel();
+        _hideCancellationTokenSource?.Cancel();
+
         if (_currentAnimation != null && _currentAnimation.IsActive())
         {
-            _currentAnimation.Kill();
+            _currentAnimation.Kill(true);
         }
 
-        // 등장 애니메이션 취소
-        if (_showCancellationTokenSource != null)
-        {
-            _showCancellationTokenSource.Cancel();
-            _showCancellationTokenSource.Dispose();
-            _showCancellationTokenSource = null;
-        }
+        _showCancellationTokenSource?.Dispose();
+        _hideCancellationTokenSource?.Dispose();
 
-        // 대기 딜레이 취소
-        if (_hideCancellationTokenSource != null)
-        {
-            _hideCancellationTokenSource.Cancel();
-            _hideCancellationTokenSource.Dispose();
-            _hideCancellationTokenSource = null;
-        }
+        _showCancellationTokenSource = null;
+        _hideCancellationTokenSource = null;
+        _currentAnimation = null;
     }
 
-    // 수동으로 알림 숨기기
     public void HideAlert()
     {
         ClearPreviousAlert();
-        AlertText.gameObject.SetActive(false);
+        if (AlertText != null)
+        {
+            AlertText.gameObject.SetActive(false);
+        }
     }
 }

@@ -3,6 +3,8 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine.TextCore.Text;
+using Unity.Services.Matchmaker.Models;
+using System.Collections.Generic;
 public abstract class GameStateBase : IGameState
 {
     public virtual void EnterState() { }
@@ -21,10 +23,13 @@ public class PlayerConnectionState : GameStateBase
     public override void EnterState()
     {
         Debug.Log("Entered PlayerConnectionState");
+
+
         InGameUIManager.Instance.CloseAllSlot();
-        GameManager.Instance.DecideFirstAttack();
         GameManager.Instance.InitializeActionCounters();
+        GameManager.Instance.DecideFirstAttack();
         BallManager.Instance.UpdateSpawnBallButtonState();
+
         EnterGame();
     }
 
@@ -81,7 +86,7 @@ public class CharacterPlacementCompleteState : GameStateBase
 
     private void CheckAttackTeam()
     {
-        if(GameManager.Instance.AttackingTeam != GameManager.Instance.thisPlayerBrain.GetMyTeam())
+        if (GameManager.Instance.AttackingTeam != GameManager.Instance.thisPlayerBrain.GetMyTeam())
         {
             GameManager.Instance.ChangeState<ReadyCheckState>();
         }
@@ -138,6 +143,12 @@ public class InitGameState : GameStateBase
 {
     public override void EnterState()
     {
+        if (GameManager.Instance.IsGameFinished())
+        {
+            GameManager.Instance.FinishGameClientRpc();
+            return;
+        }
+
         TurnManager.Instance.IsActiveGame = true;
         GridManager.Instance.TurnStartSetting();
         BallManager.Instance.SetBallOwner();
@@ -344,27 +355,37 @@ public class ActionExecutionState : GameStateBase
 
 public class GameResetState : GameStateBase
 {
-    public override void EnterState()
+    public override async void EnterState()
     {
         Debug.Log("Entered GameResetState");
-        ResetAsync().Forget();
+        GameManager.Instance.NotifyAlertClientRpc(GameConstants.GameResetText);
+        await ResetAsync();
+
+        if (!GameManager.Instance.IsGameFinished())
+        {
+            ResetEnd();
+        }
     }
 
-    private async UniTaskVoid ResetAsync()
+    private async UniTask ResetAsync()
     {
-        await UniTask.Delay(2000); // 2√  ¥Î±‚
+        var tasks = new List<UniTask>();
+        tasks.Add(PlayerCharacterNetworkPool.Instance.ReturnAllCharactersAsync());
+        tasks.Add(BallManager.Instance.DespawnBallAsync());
+        tasks.Add(GameManager.Instance.ResetAllPlayersReadyStateAsync());
+        tasks.Add(GridManager.Instance.ResetAllGridTileAsync());
 
-        PlayerCharacterNetworkPool.Instance.ReturnAllCharacters();
-        BallManager.Instance.DespawnBall();
-        GameManager.Instance.ResetAllPlayersReadyState();
-        GridManager.Instance.ResetAllGridTile();
-
-
-        ResetEnd();
+        await UniTask.WhenAll(tasks);
+        await UniTask.Delay(2000);
     }
 
     private void ResetEnd()
     {
         GameManager.Instance.ResetGameClientRpc();
+    }
+
+    public override void ExitState()
+    {
+
     }
 }

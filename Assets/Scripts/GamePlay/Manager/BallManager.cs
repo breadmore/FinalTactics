@@ -53,6 +53,7 @@ public class BallManager : NetworkSingleton<BallManager>
 
     public void OnIsBallSpawnedChanged(bool oldValue, bool newValue)
     {
+        Debug.Log("Ball Spawn : " + newValue);
         // 같은 팀에서 생성 했을 경우
         if (IsBallSpawned)
         {
@@ -68,6 +69,7 @@ public class BallManager : NetworkSingleton<BallManager>
     public void UpdateSpawnBallButtonState()
     {
         if (IsBallSpawned) return;
+        Debug.Log("Team : " + GameManager.Instance.AttackingTeam);
         if (GameManager.Instance.AttackingTeam == GameManager.Instance.thisPlayerBrain.GetMyTeam())
         {
             ActiveButton(true);
@@ -154,9 +156,9 @@ public class BallManager : NetworkSingleton<BallManager>
         SetBallPositionClientRpc(gridTile.gridPosition);
     }
 
-    public void DespawnBall() 
+    public async UniTask DespawnBallAsync()
     {
-        if (IsServer)
+        if (IsServer && spawnedBall != null)
         {
             spawnedBall.Despawn(false);
             spawnedBall.gameObject.SetActive(false);
@@ -164,8 +166,9 @@ public class BallManager : NetworkSingleton<BallManager>
         }
 
         SetBallOwnerClientRpc(0);
-
+        await UniTask.Yield(); // 네트워크 작업 후 프레임 yield
     }
+
 
 
     // 서버 전용 메서드: 공 소유자 설정

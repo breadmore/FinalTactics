@@ -72,6 +72,7 @@ public class PlayerCharacter : NetworkBehaviour
         if (IsServer)
         {
             gridPosition.OnValueChanged -= OnGridPositionChanged;
+            //PlayerCharacterNetworkPool.Instance.ReturnToPoolInternal(NetworkObject);
         }
 
 
@@ -197,9 +198,6 @@ public class PlayerCharacter : NetworkBehaviour
             if (data != null)
             {
                 CharacterStat = data.characterStat;
-                Debug.Log(CharacterStat.speed);
-                Debug.Log(CharacterStat.shoot);
-                Debug.Log(CharacterStat.tackle);
             }
         }
         catch (Exception e)

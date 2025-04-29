@@ -161,7 +161,6 @@ public class CameraManager : Singleton<CameraManager>
         {
             GameManager.Instance.ChangeState<PlayerActionDecisionState>();
             GameManager.Instance.OnPlayerCharacterSelected(focusPlayer);
-            Debug.Log(focusPlayer.ShootChargeCount);
         }
 
         if (focusPlayer.clickParticle != null)

@@ -5,6 +5,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Lobbies.Models;
 using JetBrains.Annotations;
 using Unity.VisualScripting;
+using Cysharp.Threading.Tasks;
 
 public static class GridUtils
 {
@@ -186,13 +187,15 @@ public class GridManager : NetworkSingleton<GridManager>
         }
     }
 
-    public void ResetAllGridTile()
+    public async UniTask ResetAllGridTileAsync()
     {
-        foreach (var gridTile in gridTileList) 
+        foreach (var gridTile in gridTileList)
         {
             gridTile.ResetGridTile();
+            await UniTask.Yield(); // 타일 수 많을 경우 대비
         }
     }
+
 
     public void TurnStartSetting()
     {

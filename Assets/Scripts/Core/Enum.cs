@@ -93,4 +93,5 @@ public static class GameConstants
     // 알림 텍스트
     public const string GoalText = "골 !!!";
     public const string ActionExcuteText = "액션 실행중...";
+    public const string GameResetText = "게임 초기화중...";
 }

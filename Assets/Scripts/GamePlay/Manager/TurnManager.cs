@@ -175,15 +175,24 @@ public class TurnManager : NetworkSingleton<TurnManager>
     {
         await UniTask.Delay(TimeSpan.FromSeconds(1f));
 
-        Debug.Log("액션 종료");
-        GameManager.Instance.NotifyAlertClientRpc(GameConstants.ActionExcuteText);
-        NotifyTurnEndClientRpc(currentTurn);
+
+
+        // 게임 종료 상태 확인 후 상태 전환
+        if (!GameManager.Instance.IsGameFinished())
+        {
+            NotifyTurnEndClientRpc(currentTurn);
+        }
     }
 
     [ClientRpc]
     private void NotifyTurnEndClientRpc(int turnNumber)
     {
-        GameManager.Instance.ChangeState<InitGameState>();  // 또는 다음 상태로
+        // Goal에 의해 이미 상태가 변경되었는지 확인
+        if (GameManager.Instance._currentState is not GameResetState and not GameFinishedState)
+        {
+            //AlertManager.Instance.HideAlert();
+            GameManager.Instance.ChangeState<InitGameState>();
+        }
     }
 
     [Command]

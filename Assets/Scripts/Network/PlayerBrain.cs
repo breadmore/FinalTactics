@@ -96,8 +96,7 @@ public class PlayerBrain : NetworkBehaviour
         }
 
         // 스폰 및 초기화
-        netObj.Spawn(true);
-        netObj.ChangeOwnership(requesterClientId);
+        netObj.SpawnWithOwnership(requesterClientId);
         //netObj.SpawnWithOwnership(requesterClientId);
         Debug.Assert(character.gameObject.activeSelf, "Character not active!");
 

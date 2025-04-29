@@ -52,14 +52,16 @@ public class GameManager : NetworkSingleton<GameManager>
     {
         base.OnNetworkSpawn();
 
-        attackingTeam.OnValueChanged += OnAttackingTeamChanged;
+        if (!IsServer)
+            attackingTeam.OnValueChanged += OnAttackingTeamChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
 
-        attackingTeam.OnValueChanged -= OnAttackingTeamChanged;
+        if (!IsServer)
+            attackingTeam.OnValueChanged -= OnAttackingTeamChanged;
     }
 
     private void OnAttackingTeamChanged(TeamName prev, TeamName curr)
@@ -216,7 +218,7 @@ public class GameManager : NetworkSingleton<GameManager>
         _currentState.HandleAllPlayersReady();
 
         await Task.Delay(1000);
-        ResetAllPlayersReadyState();
+        await ResetAllPlayersReadyStateAsync();
     }
     public async Task<TeamName> GetTeamNameAsync(Player player)
     {
@@ -230,30 +232,45 @@ public class GameManager : NetworkSingleton<GameManager>
     }
 
 
-    public void ResetAllPlayersReadyState()
+    public async UniTask ResetAllPlayersReadyStateAsync()
     {
         foreach (var playerData in PlayerDataDict.Values)
         {
             playerData.SetReady(false);
+            await UniTask.Yield(); // 연산 분산 처리 (플레이어 수가 많을 경우 대비)
         }
 
         Debug.Log("All players' ready state reset to false.");
 
-        //클라이언트들에게 동기화
         ResetAllPlayersReadyStateClientRpc();
+
+        await UniTask.Yield();
     }
+
 
     [ClientRpc]
     private void ResetAllPlayersReadyStateClientRpc()
+    {
+        ResetAllPlayerReadyState().Forget();
+    }
+
+    private async UniTask ResetAllPlayerReadyState()
     {
         if (IsServer) return;
 
         foreach (var playerData in PlayerDataDict.Values)
         {
             playerData.SetReady(false);
+            await UniTask.Yield();
         }
 
         Debug.Log("All players' ready state synced to false.");
+        await UniTask.Yield();
+    }
+
+    public bool IsGameFinished()
+    {
+        return teamRed.score >= 3 || teamBlue.score >= 3;
     }
 
     public void Goal(TeamName teamName)
@@ -266,8 +283,8 @@ public class GameManager : NetworkSingleton<GameManager>
             attackingTeam.Value = TeamName.Blue;
             if (teamRed.score >= 3)
             {
-                // A팀 승리
                 ChangeState<GameFinishedState>();
+                return; // 바로 종료 상태로 전환
             }
         }
         else
@@ -276,26 +293,21 @@ public class GameManager : NetworkSingleton<GameManager>
             attackingTeam.Value = TeamName.Red;
             if (teamBlue.score >= 3)
             {
-                // B팀 승리
                 ChangeState<GameFinishedState>();
+                return; // 바로 종료 상태로 전환
             }
         }
 
-        // 클라이언트에게 골 연출 보여주기
-
         SyncScoreClientRpc(teamRed.score, teamBlue.score);
 
-        if(IsServer)
-        ResetAfterGoal().Forget();
-
-
-    }
-
-    private void ReturnAllCharacter()
-    {
-        PlayerCharacterNetworkPool.Instance.ReturnAllCharacters();
-
-        Debug.Log("All characters returned to pool.");
+        if (IsServer)
+        {
+            // 게임 종료가 아닌 경우에만 리셋
+            if (!IsGameFinished())
+            {
+                ResetAfterGoal().Forget();
+            }
+        }
     }
 
 
@@ -324,6 +336,14 @@ public class GameManager : NetworkSingleton<GameManager>
         // 모든 클라이언트 초기화
         ChangeState<CharacterDataSelectionState>();
         BallManager.Instance.UpdateSpawnBallButtonState();
+    }
+
+    [ClientRpc]
+    public void FinishGameClientRpc()
+    {
+        Debug.Log("All Client Finish");
+        // 모든 클라이언트 초기화
+        ChangeState<GameFinishedState>();
     }
 
     [ClientRpc]
@@ -356,12 +376,6 @@ public class GameManager : NetworkSingleton<GameManager>
     public void ShowCurrentState()
     {
         Debug.Log(_currentState.GetType().ToString());
-    }
-
-    [Command]
-    public void TestReady()
-    {
-        ResetAllPlayersReadyState();
     }
 
     [Command]
